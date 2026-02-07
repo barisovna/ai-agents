@@ -31,13 +31,26 @@ const AGENT_PROMPTS: Record<AgentName, string> = {
   assistant: ASSISTANT_PROMPT,
 };
 
-// Agents that benefit from web search
-const SEARCH_ENABLED_AGENTS: Set<AgentName> = new Set([
+// Agents that get automatic web search before responding
+const AUTO_SEARCH_AGENTS: Set<AgentName> = new Set([
   'marketer',
   'analyst',
   'assistant',
-  'writer',
 ]);
+
+function getLastUserMessage(messages: UIMessage[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') {
+      return (
+        messages[i].parts
+          ?.filter((p) => p.type === 'text')
+          .map((p) => p.text)
+          .join('') ?? ''
+      );
+    }
+  }
+  return '';
+}
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -73,42 +86,41 @@ export async function POST(req: Request) {
     console.error('Routing failed, falling back to assistant:', error);
   }
 
-  // Phase 2: Stream specialist response with agent metadata + web search tool
+  // Phase 2: Auto web search (before streaming, for relevant agents)
+  let searchContext = '';
+
+  if (AUTO_SEARCH_AGENTS.has(selectedAgent) && process.env.TAVILY_API_KEY) {
+    const userMessage = getLastUserMessage(messages);
+    if (userMessage) {
+      try {
+        const results = await searchWeb(userMessage);
+        if (results && !results.includes('не настроен') && !results.includes('Ошибка')) {
+          searchContext = `\n\n## Актуальные данные из интернета (используй эту информацию в ответе):\n\n${results}`;
+        }
+      } catch (error) {
+        console.error('Auto search failed:', error);
+      }
+    }
+  }
+
+  // Phase 3: Stream specialist response with fresh web data
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
-      // Send agent name as a custom data part
       writer.write({
         type: 'data-agent' as const,
         data: JSON.stringify({ agentName: selectedAgent }),
       });
 
-      const hasSearch = SEARCH_ENABLED_AGENTS.has(selectedAgent) && !!process.env.TAVILY_API_KEY;
+      const systemPrompt = searchContext
+        ? `${AGENT_PROMPTS[selectedAgent]}\n${searchContext}`
+        : AGENT_PROMPTS[selectedAgent];
 
       const result = streamText({
         model: deepseek(MODEL_NAME),
-        system: AGENT_PROMPTS[selectedAgent],
+        system: systemPrompt,
         messages: await convertToModelMessages(messages),
         temperature: AGENT_TEMPERATURES[selectedAgent] ?? 0.6,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
-        ...(hasSearch
-          ? {
-              tools: {
-                searchWeb: tool({
-                  description:
-                    'Search the web for current, up-to-date information. Use this when you need: latest news, current prices, recent platform updates, fresh statistics, trending topics, or any information that might have changed after your training data cutoff. Always search when the user asks about current events or recent changes.',
-                  inputSchema: z.object({
-                    query: z
-                      .string()
-                      .describe('Search query in the language most relevant to the topic'),
-                  }),
-                  execute: async ({ query }) => {
-                    return await searchWeb(query);
-                  },
-                }),
-              },
-              maxSteps: 3,
-            }
-          : {}),
       });
 
       writer.merge(result.toUIMessageStream());
