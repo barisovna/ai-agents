@@ -19,6 +19,7 @@ import {
   ASSISTANT_PROMPT,
 } from '@/lib/prompts';
 import { AGENT_TEMPERATURES, MODEL_NAME, MAX_OUTPUT_TOKENS } from '@/lib/constants';
+import { searchWeb } from '@/lib/web-search';
 
 export const maxDuration = 60;
 
@@ -29,6 +30,14 @@ const AGENT_PROMPTS: Record<AgentName, string> = {
   analyst: ANALYST_PROMPT,
   assistant: ASSISTANT_PROMPT,
 };
+
+// Agents that benefit from web search
+const SEARCH_ENABLED_AGENTS: Set<AgentName> = new Set([
+  'marketer',
+  'analyst',
+  'assistant',
+  'writer',
+]);
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -64,7 +73,7 @@ export async function POST(req: Request) {
     console.error('Routing failed, falling back to assistant:', error);
   }
 
-  // Phase 2: Stream specialist response with agent metadata
+  // Phase 2: Stream specialist response with agent metadata + web search tool
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       // Send agent name as a custom data part
@@ -73,12 +82,33 @@ export async function POST(req: Request) {
         data: JSON.stringify({ agentName: selectedAgent }),
       });
 
+      const hasSearch = SEARCH_ENABLED_AGENTS.has(selectedAgent) && !!process.env.TAVILY_API_KEY;
+
       const result = streamText({
         model: deepseek(MODEL_NAME),
         system: AGENT_PROMPTS[selectedAgent],
         messages: await convertToModelMessages(messages),
         temperature: AGENT_TEMPERATURES[selectedAgent] ?? 0.6,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
+        ...(hasSearch
+          ? {
+              tools: {
+                searchWeb: tool({
+                  description:
+                    'Search the web for current, up-to-date information. Use this when you need: latest news, current prices, recent platform updates, fresh statistics, trending topics, or any information that might have changed after your training data cutoff. Always search when the user asks about current events or recent changes.',
+                  inputSchema: z.object({
+                    query: z
+                      .string()
+                      .describe('Search query in the language most relevant to the topic'),
+                  }),
+                  execute: async ({ query }) => {
+                    return await searchWeb(query);
+                  },
+                }),
+              },
+              maxSteps: 3,
+            }
+          : {}),
       });
 
       writer.merge(result.toUIMessageStream());
