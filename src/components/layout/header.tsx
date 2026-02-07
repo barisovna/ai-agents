@@ -11,7 +11,7 @@ export function Header() {
               Multi-Agent AI
             </h1>
             <p className="text-xs text-zinc-500">
-              Coder &middot; Writer &middot; Analyst &middot; Assistant
+              Coder &middot; Writer &middot; Marketer &middot; Analyst &middot; Assistant
             </p>
           </div>
         </div>

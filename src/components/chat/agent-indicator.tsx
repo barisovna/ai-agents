@@ -11,6 +11,11 @@ const AGENT_CONFIG: Record<string, { label: string; emoji: string; color: string
     emoji: '✍️',
     color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
   },
+  marketer: {
+    label: 'Marketer',
+    emoji: '🎯',
+    color: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+  },
   analyst: {
     label: 'Analyst',
     emoji: '📊',

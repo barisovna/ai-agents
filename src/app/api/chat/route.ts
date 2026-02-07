@@ -14,6 +14,7 @@ import { type AgentName } from '@/agents/registry';
 import {
   CODER_PROMPT,
   WRITER_PROMPT,
+  MARKETER_PROMPT,
   ANALYST_PROMPT,
   ASSISTANT_PROMPT,
 } from '@/lib/prompts';
@@ -24,6 +25,7 @@ export const maxDuration = 60;
 const AGENT_PROMPTS: Record<AgentName, string> = {
   coder: CODER_PROMPT,
   writer: WRITER_PROMPT,
+  marketer: MARKETER_PROMPT,
   analyst: ANALYST_PROMPT,
   assistant: ASSISTANT_PROMPT,
 };
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
         routeToAgent: tool({
           description: 'Route the user message to the best specialist agent',
           inputSchema: z.object({
-            agentName: z.enum(['coder', 'writer', 'analyst', 'assistant']),
+            agentName: z.enum(['coder', 'writer', 'marketer', 'analyst', 'assistant']),
             reasoning: z.string(),
           }),
         }),
