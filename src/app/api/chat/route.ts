@@ -88,19 +88,31 @@ export async function POST(req: Request) {
 
   // Phase 2: Auto web search (before streaming, for relevant agents)
   let searchContext = '';
+  const tavilyKey = process.env.TAVILY_API_KEY;
+  const shouldSearch = AUTO_SEARCH_AGENTS.has(selectedAgent);
 
-  if (AUTO_SEARCH_AGENTS.has(selectedAgent) && process.env.TAVILY_API_KEY) {
+  console.log('[Search] Agent:', selectedAgent, '| Should search:', shouldSearch, '| Has Tavily key:', !!tavilyKey, '| Key prefix:', tavilyKey?.slice(0, 8) ?? 'MISSING');
+
+  if (shouldSearch && tavilyKey) {
     const userMessage = getLastUserMessage(messages);
+    console.log('[Search] User message:', userMessage.slice(0, 100));
     if (userMessage) {
       try {
+        console.log('[Search] Calling Tavily API...');
         const results = await searchWeb(userMessage);
+        console.log('[Search] Results length:', results.length, '| First 200 chars:', results.slice(0, 200));
         if (results && !results.includes('не настроен') && !results.includes('Ошибка')) {
-          searchContext = `\n\n## Актуальные данные из интернета (используй эту информацию в ответе):\n\n${results}`;
+          searchContext = `\n\n## Актуальные данные из интернета (используй эту информацию в ответе, ссылайся на источники):\n\n${results}`;
+          console.log('[Search] Context injected, length:', searchContext.length);
+        } else {
+          console.log('[Search] Results filtered out (error or not configured)');
         }
       } catch (error) {
-        console.error('Auto search failed:', error);
+        console.error('[Search] Failed:', error);
       }
     }
+  } else {
+    console.log('[Search] Skipped. Reason:', !shouldSearch ? 'agent not in auto-search list' : 'no TAVILY_API_KEY');
   }
 
   // Phase 3: Stream specialist response with fresh web data
