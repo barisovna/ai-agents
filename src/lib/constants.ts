@@ -1,5 +1,5 @@
 export const MODEL_NAME = 'deepseek-chat';
-export const MAX_OUTPUT_TOKENS = 4096;
+export const MAX_OUTPUT_TOKENS = 8192;
 
 export const AGENT_TEMPERATURES: Record<string, number> = {
   coder: 0.3,

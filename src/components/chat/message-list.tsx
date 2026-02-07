@@ -3,17 +3,28 @@
 import { type UIMessage } from 'ai';
 import { MessageBubble } from './message-bubble';
 import { AgentIndicator } from './agent-indicator';
+import { QuickPrompts } from './quick-prompts';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useRef } from 'react';
+import { type Artifact } from './artifact-panel';
 
 interface MessageListProps {
   messages: UIMessage[];
   isLoading: boolean;
   currentAgent: string | null;
   agentMap: Map<string, string>;
+  onSendPrompt: (text: string) => void;
+  onOpenArtifact: (artifact: Artifact) => void;
 }
 
-export function MessageList({ messages, isLoading, currentAgent, agentMap }: MessageListProps) {
+export function MessageList({
+  messages,
+  isLoading,
+  currentAgent,
+  agentMap,
+  onSendPrompt,
+  onOpenArtifact,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,20 +32,7 @@ export function MessageList({ messages, isLoading, currentAgent, agentMap }: Mes
   }, [messages, isLoading]);
 
   if (messages.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full text-zinc-400">
-        <div className="text-center space-y-3">
-          <div className="text-5xl">🤖</div>
-          <h2 className="text-xl font-semibold text-zinc-600 dark:text-zinc-300">
-            AI Multi-Agent
-          </h2>
-          <p className="text-sm max-w-md">
-            Напишите сообщение, и система автоматически направит его
-            к нужному агенту-специалисту: Coder, Writer, Analyst или Assistant.
-          </p>
-        </div>
-      </div>
-    );
+    return <QuickPrompts onSelect={onSendPrompt} />;
   }
 
   return (
@@ -44,11 +42,18 @@ export function MessageList({ messages, isLoading, currentAgent, agentMap }: Mes
           <MessageBubble
             key={message.id}
             message={message}
-            agentName={agentMap.get(message.id) ?? (message.role === 'assistant' && message === messages[messages.length - 1] ? currentAgent : null)}
+            agentName={
+              agentMap.get(message.id) ??
+              (message.role === 'assistant' &&
+              message === messages[messages.length - 1]
+                ? currentAgent
+                : null)
+            }
+            onOpenArtifact={onOpenArtifact}
           />
         ))}
         {isLoading && messages[messages.length - 1]?.role === 'user' && (
-          <div className="flex gap-3 px-4 py-4">
+          <div className="flex gap-3 px-4 py-3">
             <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-zinc-500">
                 {currentAgent && (
