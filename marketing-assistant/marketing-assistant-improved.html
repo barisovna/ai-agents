@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Маркетинг Ассистент Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --bg-main: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --shadow: rgba(0,0,0,0.1);
+            --message-user: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --message-ai: #ffffff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f1419;
+            --text-primary: #e4e4e7;
+            --text-secondary: #a1a1aa;
+            --border-color: #27272a;
+            --shadow: rgba(0,0,0,0.3);
+            --message-ai: #27272a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: var(--bg-main);
+            border-radius: 24px;
+            box-shadow: 0 20px 80px var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 20px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .theme-toggle {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 380px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .collapsible-section {
+            background: var(--bg-main);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .collapsible-section:hover {
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .section-header {
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+            user-select: none;
+        }
+
+        .section-header h3 {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-header i {
+            transition: transform 0.3s;
+        }
+
+        .section-header.active i {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .section-content.active {
+            padding: 15px;
+            max-height: 800px;
+        }
+
+        .expert-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .expert-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            transform: scaleY(0);
+            transition: transform 0.3s;
+        }
+
+        .expert-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .expert-card.active {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+
+        .expert-card.active::before {
+            transform: scaleY(1);
+        }
+
+        .expert-card h4 {
+            font-size: 15px;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+
+        .expert-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .platform-btn {
+            padding: 10px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .platform-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .platform-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .input-group textarea,
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .input-group textarea:focus,
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .quick-action-btn {
+            padding: 10px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            color: var(--text-primary);
+        }
+
+        .quick-action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .chat-container {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-container.active {
+            display: flex;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: var(--bg-secondary);
+        }
+
+        .messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: messageSlide 0.3s ease;
+            position: relative;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-content {
+            padding: 16px 20px;
+            border-radius: 16px;
+            position: relative;
+            max-width: 85%;
+        }
+
+        .message.user .message-content {
+            background: var(--message-user);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: var(--message-ai);
+            border: 1px solid var(--border-color);
+            max-width: 95%;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+
+        .message-action-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+
+        .message-action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            background: var(--message-ai);
+            border-radius: 16px;
+            max-width: 80px;
+            border: 1px solid var(--border-color);
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .input-area {
+            padding: 20px;
+            background: var(--bg-main);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            resize: none;
+            max-height: 120px;
+            font-family: inherit;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .input-wrapper textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px var(--shadow);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--error);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-main);
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .budget-calc {
+            display: grid;
+            gap: 15px;
+        }
+
+        .budget-result {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .budget-result.active {
+            display: block;
+        }
+
+        .budget-result h3 {
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .budget-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .template-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .template-card {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .template-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .template-card h4 {
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .template-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .badge.vk { background: #0077ff; color: white; }
+        .badge.telegram { background: #0088cc; color: white; }
+        .badge.dzen { background: #ff6600; color: white; }
+        .badge.max { background: #9333ea; color: white; }
+        .badge.yandex { background: #ffcc00; color: #000; }
+        .badge.avito { background: #00aaff; color: white; }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 320px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+                height: 100vh;
+            }
+
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .header {
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+        }
+
+        .message-content h1,
+        .message-content h2,
+        .message-content h3 {
+            margin: 16px 0 8px 0;
+        }
+
+        .message-content ul,
+        .message-content ol {
+            margin: 8px 0;
+            padding-left: 24px;
+        }
+
+        .message-content li {
+            margin: 4px 0;
+        }
+
+        .message-content code {
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .message-content pre {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+
+        .message-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .message-content blockquote {
+            border-left: 4px solid var(--primary);
+            padding-left: 16px;
+            margin: 12px 0;
+            color: var(--text-secondary);
+        }
+
+        .message-content a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        .message-content strong {
+            font-weight: 600;
+        }
+
+        .session-item {
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .session-item:hover {
+            border-color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .session-info {
+            flex: 1;
+        }
+
+        .session-info h4 {
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .session-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .delete-session {
+            background: var(--error);
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .delete-session:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <i class="fas fa-rocket" style="font-size: 24px;"></i>
+                <h1>AI Маркетинг Ассистент Pro</h1>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn" onclick="openModal('historyModal')" title="История сессий">
+                    <i class="fas fa-history"></i>
+                </button>
+                <button class="icon-btn" onclick="openModal('budgetModal')" title="Калькулятор бюджета">
+                    <i class="fas fa-calculator"></i>
+                </button>
+                <button class="icon-btn" onclick="openModal('templatesModal')" title="Шаблоны контента">
+                    <i class="fas fa-file-alt"></i>
+                </button>
+                <button class="icon-btn" onclick="exportChat()" title="Экспорт чата">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <span id="themeText">Темная</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="collapsible-section">
+                    <div class="section-header active" onclick="toggleSection(this)">
+                        <h3><i class="fas fa-user-tie"></i> Выберите эксперта</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="section-content active">
+                        <div class="expert-card active" data-expert="krivov">
+                            <h4><i class="fas fa-crown" style="color: gold;"></i> Владимир Кривов</h4>
+                            <p>Топ маркетолог России 2026</p>
+                        </div>
+                        <div class="expert-card" data-expert="sebrant">
+                            <h4><i class="fas fa-chart-line" style="color: #ff3333;"></i> Андрей Себрант</h4>
+                            <p>Эксперт Яндекса</p>
+                        </div>
+                        <div class="expert-card" data-expert="zakharov">
+                            <h4><i class="fas fa-search" style="color: #4caf50;"></i> Максим Захаров</h4>
+                            <p>SEO-гуру</p>
+                        </div>
+                        <div class="expert-card" data-expert="content">
+                            <h4><i class="fas fa-pen-fancy" style="color: #ff9800;"></i> Контент-стратег</h4>
+                            <p>Эксперт по созданию контента</p>
+                        </div>
+                        <div class="expert-card" data-expert="targeting">
+                            <h4><i class="fas fa-crosshairs" style="color: #e91e63;"></i> Таргетолог</h4>
+                            <p>Настройка рекламных кабинетов</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="collapsible-section">
+                    <div class="section-header active" onclick="toggleSection(this)">
+                        <h3><i class="fas fa-share-alt"></i> Выберите платформы</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="section-content active">
+                        <div class="platform-grid">
+                            <button class="platform-btn" data-platform="vk">
+                                <i class="fab fa-vk"></i> ВКонтакте
+                            </button>
+                            <button class="platform-btn" data-platform="vk-ads">
+                                <i class="fas fa-bullhorn"></i> VK Реклама
+                            </button>
+                            <button class="platform-btn" data-platform="telegram">
+                                <i class="fab fa-telegram"></i> Telegram
+                            </button>
+                            <button class="platform-btn" data-platform="dzen">
+                                <i class="fas fa-newspaper"></i> Дзен
+                            </button>
+                            <button class="platform-btn" data-platform="max">
+                                <i class="fas fa-ad"></i> MAX
+                            </button>
+                            <button class="platform-btn" data-platform="yandex">
+                                <i class="fas fa-bullseye"></i> Яндекс Директ
+                            </button>
+                            <button class="platform-btn" data-platform="metrika">
+                                <i class="fas fa-chart-bar"></i> Яндекс Метрика
+                            </button>
+                            <button class="platform-btn" data-platform="avito">
+                                <i class="fas fa-store"></i> Авито
+                            </button>
+                            <button class="platform-btn" data-platform="website">
+                                <i class="fas fa-globe"></i> Сайты
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection(this)">
+                        <h3><i class="fas fa-brain"></i> Режим AI</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="section-content">
+                        <div class="input-group">
+                            <label><i class="fas fa-robot"></i> Выберите модель</label>
+                            <select id="aiModel" style="width: 100%; padding: 10px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-main); color: var(--text-primary);">
+                                <option value="deepseek-chat">💬 Chat (Быстро, 8K токенов)</option>
+                                <option value="deepseek-reasoner">🧠 Reasoner (Глубокий анализ, 64K)</option>
+                            </select>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+                                Chat - обычный режим, быстрые ответы.<br>
+                                Reasoner - режим размышления для сложных задач.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="collapsible-section">
+                    <div class="section-header active" onclick="toggleSection(this)">
+                        <h3><i class="fas fa-project-diagram"></i> Описание проекта</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="section-content active">
+                        <div class="input-group">
+                            <label><i class="fas fa-info-circle"></i> Опишите ваш проект</label>
+                            <textarea id="projectDesc" placeholder="Например: Интернет-магазин эко-товаров для дома. Целевая аудитория: женщины 25-40 лет. Бюджет: 50000 руб/мес"></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label><i class="fas fa-bullseye"></i> Цель кампании (необязательно)</label>
+                            <input type="text" id="campaignGoal" placeholder="Например: Увеличить продажи на 30%">
+                        </div>
+                        <button id="startBtn" class="btn">
+                            <i class="fas fa-rocket"></i> Получить стратегию
+                        </button>
+                    </div>
+                </div>
+
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection(this)">
+                        <h3><i class="fas fa-bolt"></i> Быстрые действия</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="section-content">
+                        <div class="quick-actions">
+                            <button class="quick-action-btn" onclick="quickPrompt('Создай контент-план на неделю')">
+                                <i class="fas fa-calendar"></i> Контент-план
+                            </button>
+                            <button class="quick-action-btn" onclick="quickPrompt('Проанализируй конкурентов')">
+                                <i class="fas fa-users"></i> Анализ конкурентов
+                            </button>
+                            <button class="quick-action-btn" onclick="quickPrompt('Предложи идеи для постов')">
+                                <i class="fas fa-lightbulb"></i> Идеи постов
+                            </button>
+                            <button class="quick-action-btn" onclick="quickPrompt('Напиши рекламный текст')">
+                                <i class="fas fa-ad"></i> Рекламный текст
+                            </button>
+                            <button class="quick-action-btn" onclick="quickPrompt('Подбери хештеги')">
+                                <i class="fas fa-hashtag"></i> Хештеги
+                            </button>
+                            <button class="quick-action-btn" onclick="quickPrompt('Оптимизируй SEO')">
+                                <i class="fas fa-search-plus"></i> SEO советы
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-area">
+                <div id="chatContainer" class="chat-container">
+                    <div id="messages" class="messages">
+                        <div class="typing-indicator" id="typingIndicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                    <div class="input-area">
+                        <div class="input-wrapper">
+                            <textarea id="userInput" placeholder="Задайте вопрос..." onkeydown="handleEnter(event)"></textarea>
+                            <button id="sendBtn" class="send-btn">
+                                <i class="fas fa-paper-plane"></i> Отправить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="budgetModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-calculator"></i> Калькулятор рекламного бюджета</h2>
+                <button class="close-modal" onclick="closeModal('budgetModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="budget-calc">
+                    <div class="input-group">
+                        <label>Общий бюджет (руб/мес)</label>
+                        <input type="number" id="totalBudget" placeholder="50000">
+                    </div>
+                    <div class="input-group">
+                        <label>Количество платформ</label>
+                        <input type="number" id="platformCount" value="3">
+                    </div>
+                    <div class="input-group">
+                        <label>Средняя цена клика (руб)</label>
+                        <input type="number" id="cpc" placeholder="15">
+                    </div>
+                    <div class="input-group">
+                        <label>Конверсия в продажу (%)</label>
+                        <input type="number" id="conversion" placeholder="2" step="0.1">
+                    </div>
+                    <button class="btn" onclick="calculateBudget()">
+                        <i class="fas fa-chart-line"></i> Рассчитать
+                    </button>
+                </div>
+                <div id="budgetResult" class="budget-result">
+                    <h3>Прогноз результатов:</h3>
+                    <div class="budget-item">
+                        <span>Бюджет на платформу:</span>
+                        <strong id="budgetPerPlatform">-</strong>
+                    </div>
+                    <div class="budget-item">
+                        <span>Ожидаемые клики:</span>
+                        <strong id="expectedClicks">-</strong>
+                    </div>
+                    <div class="budget-item">
+                        <span>Ожидаемые продажи:</span>
+                        <strong id="expectedSales">-</strong>
+                    </div>
+                    <div class="budget-item">
+                        <span>Стоимость привлечения (CAC):</span>
+                        <strong id="cac">-</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="templatesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-alt"></i> Шаблоны контента</h2>
+                <button class="close-modal" onclick="closeModal('templatesModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="template-grid">
+                    <div class="template-card" onclick="useTemplate('sale-post')">
+                        <h4><i class="fas fa-percentage"></i> Пост о распродаже</h4>
+                        <p>Привлекательный пост для анонса скидок</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('product-review')">
+                        <h4><i class="fas fa-star"></i> Обзор продукта</h4>
+                        <p>Детальный обзор товара или услуги</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('story-template')">
+                        <h4><i class="fas fa-image"></i> Сторис</h4>
+                        <p>Идеи для stories в соцсетях</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('contest')">
+                        <h4><i class="fas fa-gift"></i> Конкурс/Розыгрыш</h4>
+                        <p>Структура проведения конкурса</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('case-study')">
+                        <h4><i class="fas fa-chart-bar"></i> Кейс клиента</h4>
+                        <p>История успеха вашего клиента</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('expert-post')">
+                        <h4><i class="fas fa-graduation-cap"></i> Экспертный пост</h4>
+                        <p>Полезная статья с советами</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('ad-copy')">
+                        <h4><i class="fas fa-bullhorn"></i> Рекламный текст</h4>
+                        <p>Продающее объявление</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('email')">
+                        <h4><i class="fas fa-envelope"></i> Email рассылка</h4>
+                        <p>Шаблон письма для клиентов</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('yandex-direct')">
+                        <h4><i class="fas fa-bullseye"></i> Настройка Яндекс Директ</h4>
+                        <p>Пошаговая инструкция по настройке</p>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('avito-ads')">
+                        <h4><i class="fas fa-store"></i> Реклама на Авито</h4>
+                        <p>Гайд по размещению объявлений</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-history"></i> История сессий</h2>
+                <button class="close-modal" onclick="closeModal('historyModal')">×</button>
+            </div>
+            <div class="modal-body" id="sessionsList">
+                <p style="text-align: center; color: var(--text-secondary);">История пуста</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let selectedExpert = 'krivov';
+        let selectedPlatforms = [];
+        let conversationHistory = [];
+        let projectDescription = '';
+        let currentSessionId = null;
+
+        const expertPrompts = {
+            krivov: 'Ты - Владимир Кривов, топовый маркетолог России 2026. Твоя специализация - полный спектр маркетинга с фокусом на ROI и результат. Давай конкретные, применимые советы с цифрами и примерами. Для каждой рекомендации указывай: конкретные шаги реализации, ожидаемые метрики (CTR, CPC, конверсия), примерные бюджеты и сроки. Приводи реальные кейсы из российского рынка. Учитывай закон о маркировке рекламы (ОРД) и актуальные требования ФАС.',
+            sebrant: 'Ты - Андрей Себрант, эксперт по цифровому маркетингу и аналитике. Фокусируйся на data-driven подходах, метриках и оптимизации кампаний. Объясняй методологию A/B тестирования, воронки конверсий, когортный анализ. Давай конкретные формулы расчётов, примеры дашбордов и KPI для отслеживания. Рекомендуй инструменты аналитики (Яндекс Метрика, VK Аналитика) с пояснением как их настроить.',
+            zakharov: 'Ты - Максим Захаров, SEO-гуру. Специализируешься на поисковой оптимизации, контент-стратегии и органическом трафике. Давай подробные рекомендации по: структуре сайта, семантическому ядру с примерами ключевых слов, техническому SEO (скорость, мобильная версия, разметка), линкбилдингу, оптимизации контента. Указывай конкретные инструменты и сервисы для каждого этапа.',
+            content: 'Ты - эксперт по контент-маркетингу и сторителлингу. Помогаешь создавать вовлекающий контент, который конвертирует аудиторию в клиентов. Давай готовые примеры текстов, заголовков, структуру постов. Объясняй психологические триггеры и формулы копирайтинга (AIDA, PAS, 4U). Предлагай контент-план с конкретными темами, форматами и временем публикации.',
+            targeting: 'Ты - профессиональный таргетолог с опытом настройки рекламных кабинетов VK Реклама, Яндекс Директ, myTarget. Специализируешься на: сегментации аудиторий, настройке look-alike, ретаргетинге, оптимизации ставок и бюджетов. Давай пошаговые инструкции по настройке рекламных кампаний с конкретными параметрами таргетинга, креативами и стратегиями оптимизации. Учитывай закон о маркировке рекламы (ОРД) 2024-2026.'
+        };
+
+        const templates = {
+            'sale-post': 'Создай пост для анонса распродажи со скидкой до 50%. Включи: цепляющий заголовок, описание выгоды, призыв к действию, хештеги',
+            'product-review': 'Напиши детальный обзор продукта: характеристики, преимущества, кому подойдет, отзывы',
+            'story-template': 'Придумай 5 идей для stories: опросы, викторины, закулисье, отзывы клиентов',
+            'contest': 'Разработай механику конкурса: правила участия, призы, условия, срок проведения',
+            'case-study': 'Составь кейс клиента: проблема, решение, результаты с цифрами',
+            'expert-post': 'Напиши экспертную статью с полезными советами на тему моего бизнеса',
+            'ad-copy': 'Создай рекламный текст: заголовок, УТП, преимущества, CTA',
+            'email': 'Составь email-письмо для рассылки: тема, приветствие, основной текст, призыв',
+            'yandex-direct': 'Дай подробную инструкцию по настройке рекламной кампании в Яндекс Директ: создание кампании, подбор ключевых слов, настройка ставок, таргетинг, объявления, стратегии показов',
+            'avito-ads': 'Составь гайд по размещению эффективной рекламы на Авито: создание объявления, выбор категории, описание товара/услуги, ценообразование, продвижение объявлений, работа с лидами'
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            loadSessions();
+
+            document.querySelectorAll('.expert-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.expert-card').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedExpert = this.dataset.expert;
+                    showToast('Выбран эксперт: ' + this.querySelector('h4').textContent, 'success');
+                });
+            });
+
+            document.querySelectorAll('.platform-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const platform = this.dataset.platform;
+                    if (this.classList.contains('active')) {
+                        if (!selectedPlatforms.includes(platform)) {
+                            selectedPlatforms.push(platform);
+                        }
+                    } else {
+                        selectedPlatforms = selectedPlatforms.filter(p => p !== platform);
+                    }
+                });
+            });
+
+            document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        });
+
+        function toggleSection(header) {
+            header.classList.toggle('active');
+            header.nextElementSibling.classList.toggle('active');
+        }
+
+        document.getElementById('startBtn').addEventListener('click', async function() {
+            const projectDesc = document.getElementById('projectDesc').value.trim();
+            const campaignGoal = document.getElementById('campaignGoal').value.trim();
+
+            if (!projectDesc) {
+                showToast('Опишите ваш проект', 'error');
+                return;
+            }
+
+            if (selectedPlatforms.length === 0) {
+                showToast('Выберите хотя бы одну платформу', 'error');
+                return;
+            }
+
+            projectDescription = projectDesc;
+            currentSessionId = Date.now().toString();
+            document.getElementById('chatContainer').classList.add('active');
+
+            const platformNames = {
+                vk: 'ВКонтакте',
+                'vk-ads': 'VK Реклама',
+                telegram: 'Telegram',
+                dzen: 'Яндекс.Дзен',
+                max: 'MAX',
+                yandex: 'Яндекс Директ',
+                metrika: 'Яндекс Метрика',
+                avito: 'Авито',
+                website: 'Сайты'
+            };
+
+            const platformsText = selectedPlatforms.map(p => platformNames[p]).join(', ');
+            let initialMessage = `Мой проект: ${projectDesc}\nПлатформы: ${platformsText}`;
+            if (campaignGoal) initialMessage += `\nЦель: ${campaignGoal}`;
+            initialMessage += '\n\nСоставь подробную стратегию продвижения с конкретными шагами и рекомендациями!';
+
+            addMessage('user', initialMessage);
+            await sendToAI(initialMessage);
+        });
+
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput').value.trim();
+            if (!userInput) return;
+
+            addMessage('user', userInput);
+            document.getElementById('userInput').value = '';
+            await sendToAI(userInput);
+        }
+
+        function addMessage(role, content) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            if (role === 'assistant') {
+                contentDiv.innerHTML = marked.parse(content);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'message-actions';
+                actionsDiv.innerHTML = `
+                    <button class="message-action-btn" onclick="copyText(this)">
+                        <i class="fas fa-copy"></i> Копировать
+                    </button>
+                    <button class="message-action-btn" onclick="regenerateResponse(this)">
+                        <i class="fas fa-redo"></i> Обновить
+                    </button>
+                `;
+                messageDiv.appendChild(actionsDiv);
+            } else {
+                contentDiv.textContent = content;
+            }
+
+            messageDiv.insertBefore(contentDiv, messageDiv.firstChild);
+
+            const typingIndicator = document.getElementById('typingIndicator');
+            messagesDiv.insertBefore(messageDiv, typingIndicator);
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            if (currentSessionId) {
+                saveSession();
+            }
+        }
+
+        async function sendToAI(userMessage) {
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+
+            document.getElementById('typingIndicator').classList.add('active');
+
+            const systemPrompt = `Ты - профессиональный AI-помощник по маркетингу и продвижению в России. Сегодня ${new Date().toLocaleDateString('ru-RU')} (2026 год).
+
+ПРАВИЛА ОТВЕТОВ:
+- Давай РАЗВЁРНУТЫЕ, ДЕТАЛЬНЫЕ ответы. Не экономь на объёме — пользователь ожидает полноценную консультацию эксперта.
+- Каждый ответ должен содержать: анализ ситуации, конкретные рекомендации с пошаговыми инструкциями, примеры, ожидаемые результаты.
+- Форматируй ответы красиво используя markdown: заголовки (##, ###), нумерованные и маркированные списки, **жирный текст** для ключевых моментов, > цитаты для важных выводов.
+- Для каждой рекомендации давай: что именно сделать, как сделать (пошагово), какой результат ожидать, какие инструменты использовать.
+- Приводи конкретные цифры, метрики, бюджеты и сроки где это возможно.
+- Если вопрос сложный — структурируй ответ по разделам с заголовками.
+- НЕ обрывай ответ, ВСЕГДА доводи мысль до конца и давай итоговые выводы/рекомендации.
+- Учитывай российское законодательство: закон о маркировке рекламы (ОРД), требования ФАС, закон о персональных данных.
+- Используй актуальные данные по платформам: VK Реклама, Яндекс Директ, Telegram Ads, Авито, Дзен.`;
+
+            const contextPrompt = projectDescription ?
+                `\n\nКОНТЕКСТ ПРОЕКТА: ${projectDescription}\nПЛАТФОРМЫ: ${selectedPlatforms.join(', ')}` : '';
+
+            const messages = [
+                {
+                    role: 'system',
+                    content: systemPrompt + contextPrompt + '\n\n' + expertPrompts[selectedExpert]
+                },
+                ...conversationHistory,
+                {
+                    role: 'user',
+                    content: userMessage
+                }
+            ];
+
+            try {
+                // Получаем выбранную модель
+                const selectedModel = document.getElementById('aiModel')?.value || 'deepseek-chat';
+
+                // Устанавливаем max_tokens в зависимости от модели (увеличено для развёрнутых ответов)
+                const maxTokens = selectedModel === 'deepseek-reasoner' ? 16384 : 8192;
+
+                const response = await fetch('/api-proxy.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: selectedModel,
+                        messages: messages,
+                        temperature: 0.7,
+                        max_tokens: maxTokens,
+                        top_p: 0.95,
+                        frequency_penalty: 0.5,
+                        presence_penalty: 0.3
+                    })
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorData.message || errorMessage;
+                    } catch (e) {
+                        // Если не удалось распарсить JSON, значит сервер вернул HTML ошибку
+                        const textError = await response.text();
+                        console.error('Server returned non-JSON:', textError.substring(0, 200));
+                        errorMessage = 'Ошибка сервера. Проверьте config.php и api-proxy.php';
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+
+                if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+                    throw new Error('Некорректный ответ от API');
+                }
+
+                const assistantMessage = data.choices[0].message.content;
+
+                conversationHistory.push({role: 'user', content: userMessage});
+                conversationHistory.push({role: 'assistant', content: assistantMessage});
+
+                if (conversationHistory.length > 20) {
+                    conversationHistory = conversationHistory.slice(-20);
+                }
+
+                document.getElementById('typingIndicator').classList.remove('active');
+                addMessage('assistant', assistantMessage);
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('typingIndicator').classList.remove('active');
+
+                // Показываем понятное сообщение пользователю
+                let userMessage = error.message;
+                if (userMessage.includes('JSON')) {
+                    userMessage = 'Ошибка сервера. Проверьте api-proxy.php и config.php';
+                }
+
+                showToast('Ошибка: ' + userMessage, 'error');
+
+                // Добавляем сообщение об ошибке в чат для видимости
+                const debugMessage = `❌ Произошла ошибка: ${userMessage}
+
+**Что проверить:**
+1. **API ключ** - правильность в config.php
+2. **Интернет** - соединение с api.deepseek.com
+3. **Логи** - файлы api-debug.log и api-errors.log на сервере
+4. **Консоль** - F12 в браузере для деталей
+
+**Текущая модель:** ${document.getElementById('aiModel')?.value || 'deepseek-chat'}
+
+Если ошибка "Connection error" - проверьте файрвол или настройки сервера.`;
+
+                addMessage('assistant', debugMessage);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        function handleEnter(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function quickPrompt(prompt) {
+            if (!document.getElementById('chatContainer').classList.contains('active')) {
+                showToast('Сначала заполните описание проекта и нажмите "Получить стратегию"', 'warning');
+                return;
+            }
+            document.getElementById('userInput').value = prompt;
+            sendMessage();
+        }
+
+        function copyText(btn) {
+            const messageContent = btn.closest('.message').querySelector('.message-content');
+            const text = messageContent.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Текст скопирован!', 'success');
+            });
+        }
+
+        function regenerateResponse(btn) {
+            const message = btn.closest('.message');
+            const messages = Array.from(document.querySelectorAll('.message'));
+            const index = messages.indexOf(message);
+
+            if (index > 0) {
+                const previousUserMessage = messages[index - 1];
+                if (previousUserMessage.classList.contains('user')) {
+                    const text = previousUserMessage.querySelector('.message-content').textContent;
+                    conversationHistory = conversationHistory.slice(0, -2);
+                    message.remove();
+                    previousUserMessage.remove();
+                    addMessage('user', text);
+                    sendToAI(text);
+                }
+            }
+        }
+
+        function useTemplate(templateKey) {
+            if (!document.getElementById('chatContainer').classList.contains('active')) {
+                showToast('Сначала заполните описание проекта и нажмите "Получить стратегию"', 'warning');
+                closeModal('templatesModal');
+                return;
+            }
+            document.getElementById('userInput').value = templates[templateKey];
+            closeModal('templatesModal');
+            showToast('Шаблон загружен! Нажмите "Отправить"', 'success');
+        }
+
+        function calculateBudget() {
+            const totalBudget = parseFloat(document.getElementById('totalBudget').value);
+            const platformCount = parseInt(document.getElementById('platformCount').value);
+            const cpc = parseFloat(document.getElementById('cpc').value);
+            const conversion = parseFloat(document.getElementById('conversion').value) / 100;
+
+            if (!totalBudget || !platformCount || !cpc || !conversion) {
+                showToast('Заполните все поля', 'error');
+                return;
+            }
+
+            const budgetPerPlatform = totalBudget / platformCount;
+            const expectedClicks = totalBudget / cpc;
+            const expectedSales = expectedClicks * conversion;
+            const cac = totalBudget / expectedSales;
+
+            document.getElementById('budgetPerPlatform').textContent = budgetPerPlatform.toFixed(0) + ' руб';
+            document.getElementById('expectedClicks').textContent = Math.round(expectedClicks) + ' кликов';
+            document.getElementById('expectedSales').textContent = Math.round(expectedSales) + ' продаж';
+            document.getElementById('cac').textContent = cac.toFixed(0) + ' руб';
+
+            document.getElementById('budgetResult').classList.add('active');
+            showToast('Расчет выполнен!', 'success');
+        }
+
+        function exportChat() {
+            if (conversationHistory.length === 0) {
+                showToast('История чата пуста', 'warning');
+                return;
+            }
+
+            let exportText = '=== ИСТОРИЯ ЧАТА ===\n\n';
+            exportText += `Дата: ${new Date().toLocaleString('ru-RU')}\n`;
+            exportText += `Проект: ${projectDescription}\n`;
+            exportText += `Эксперт: ${selectedExpert}\n`;
+            exportText += `Платформы: ${selectedPlatforms.join(', ')}\n\n`;
+            exportText += '=== ДИАЛОГ ===\n\n';
+
+            conversationHistory.forEach((msg, i) => {
+                exportText += `${msg.role === 'user' ? 'Вы' : 'AI'}: ${msg.content}\n\n`;
+            });
+
+            const blob = new Blob([exportText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `marketing-chat-${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('Чат экспортирован!', 'success');
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+
+            if (newTheme === 'dark') {
+                icon.className = 'fas fa-sun';
+                text.textContent = 'Светлая';
+            } else {
+                icon.className = 'fas fa-moon';
+                text.textContent = 'Темная';
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+
+            if (savedTheme === 'dark') {
+                icon.className = 'fas fa-sun';
+                text.textContent = 'Светлая';
+            }
+        }
+
+        function saveSession() {
+            const sessions = JSON.parse(localStorage.getItem('marketingSessions') || '[]');
+            const existingIndex = sessions.findIndex(s => s.id === currentSessionId);
+
+            const session = {
+                id: currentSessionId,
+                date: new Date().toISOString(),
+                project: projectDescription,
+                expert: selectedExpert,
+                platforms: selectedPlatforms,
+                history: conversationHistory
+            };
+
+            if (existingIndex >= 0) {
+                sessions[existingIndex] = session;
+            } else {
+                sessions.unshift(session);
+            }
+
+            if (sessions.length > 10) {
+                sessions.pop();
+            }
+
+            localStorage.setItem('marketingSessions', JSON.stringify(sessions));
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function loadSessions() {
+            const sessions = JSON.parse(localStorage.getItem('marketingSessions') || '[]');
+            const sessionsList = document.getElementById('sessionsList');
+
+            if (sessions.length === 0) {
+                sessionsList.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">История пуста</p>';
+                return;
+            }
+
+            sessionsList.innerHTML = '';
+            sessions.forEach(session => {
+                const item = document.createElement('div');
+                item.className = 'session-item';
+                item.onclick = () => loadSession(session.id);
+
+                const info = document.createElement('div');
+                info.className = 'session-info';
+
+                const title = document.createElement('h4');
+                const projectText = (session.project || '').substring(0, 50);
+                title.textContent = projectText + ((session.project || '').length > 50 ? '...' : '');
+
+                const meta = document.createElement('p');
+                meta.textContent = new Date(session.date).toLocaleString('ru-RU') + ' • ' + (session.expert || '');
+
+                info.appendChild(title);
+                info.appendChild(meta);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-session';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteSession(session.id);
+                };
+
+                item.appendChild(info);
+                item.appendChild(deleteBtn);
+                sessionsList.appendChild(item);
+            });
+        }
+
+        function loadSession(sessionId) {
+            const sessions = JSON.parse(localStorage.getItem('marketingSessions') || '[]');
+            const session = sessions.find(s => s.id === sessionId);
+
+            if (!session) return;
+
+            projectDescription = session.project;
+            selectedExpert = session.expert;
+            selectedPlatforms = session.platforms;
+            conversationHistory = session.history;
+            currentSessionId = sessionId;
+
+            document.getElementById('projectDesc').value = projectDescription;
+
+            document.querySelectorAll('.expert-card').forEach(card => {
+                card.classList.toggle('active', card.dataset.expert === selectedExpert);
+            });
+
+            document.querySelectorAll('.platform-btn').forEach(btn => {
+                btn.classList.toggle('active', selectedPlatforms.includes(btn.dataset.platform));
+            });
+
+            document.getElementById('chatContainer').classList.add('active');
+            document.getElementById('messages').innerHTML = '<div class="typing-indicator" id="typingIndicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+
+            conversationHistory.forEach(msg => {
+                addMessage(msg.role, msg.content);
+            });
+
+            closeModal('historyModal');
+            showToast('Сессия загружена', 'success');
+        }
+
+        function deleteSession(sessionId) {
+            if (!confirm('Удалить эту сессию? Это действие нельзя отменить.')) {
+                return;
+            }
+
+            let sessions = JSON.parse(localStorage.getItem('marketingSessions') || '[]');
+            sessions = sessions.filter(s => String(s.id) !== String(sessionId));
+            localStorage.setItem('marketingSessions', JSON.stringify(sessions));
+
+            // Если удалили текущую активную сессию — сбрасываем ID,
+            // чтобы saveSession() не пересоздала её заново
+            if (currentSessionId && String(currentSessionId) === String(sessionId)) {
+                currentSessionId = null;
+            }
+
+            loadSessions();
+            showToast('Сессия удалена', 'success');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            if (modalId === 'historyModal') {
+                loadSessions();
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
