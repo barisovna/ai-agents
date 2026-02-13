@@ -31,7 +31,7 @@ export function Header({ onToggleSidebar, onExport, onNewChat, hasMessages }: He
               Multi-Agent AI
             </h1>
             <p className="text-[10px] text-zinc-400 leading-tight">
-              Coder &middot; Writer &middot; Marketer &middot; Analyst &middot; Assistant
+              Coder &middot; Writer &middot; Marketer &middot; Targeting &middot; Analyst &middot; Assistant
             </p>
           </div>
         </div>

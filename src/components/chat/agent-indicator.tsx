@@ -16,6 +16,11 @@ const AGENT_CONFIG: Record<string, { label: string; emoji: string; color: string
     emoji: '🎯',
     color: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
   },
+  targeting: {
+    label: 'Targeting',
+    emoji: '🎪',
+    color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  },
   analyst: {
     label: 'Analyst',
     emoji: '📊',

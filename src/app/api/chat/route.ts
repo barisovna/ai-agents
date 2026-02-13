@@ -15,6 +15,7 @@ import {
   CODER_PROMPT,
   WRITER_PROMPT,
   MARKETER_PROMPT,
+  TARGETING_PROMPT,
   ANALYST_PROMPT,
   ASSISTANT_PROMPT,
 } from '@/lib/prompts';
@@ -27,6 +28,7 @@ const AGENT_PROMPTS: Record<AgentName, string> = {
   coder: CODER_PROMPT,
   writer: WRITER_PROMPT,
   marketer: MARKETER_PROMPT,
+  targeting: TARGETING_PROMPT,
   analyst: ANALYST_PROMPT,
   assistant: ASSISTANT_PROMPT,
 };
@@ -34,6 +36,7 @@ const AGENT_PROMPTS: Record<AgentName, string> = {
 // Agents that get automatic web search before responding
 const AUTO_SEARCH_AGENTS: Set<AgentName> = new Set([
   'marketer',
+  'targeting',
   'analyst',
   'assistant',
 ]);
@@ -67,7 +70,7 @@ export async function POST(req: Request) {
         routeToAgent: tool({
           description: 'Route the user message to the best specialist agent',
           inputSchema: z.object({
-            agentName: z.enum(['coder', 'writer', 'marketer', 'analyst', 'assistant']),
+            agentName: z.enum(['coder', 'writer', 'marketer', 'targeting', 'analyst', 'assistant']),
             reasoning: z.string(),
           }),
         }),
