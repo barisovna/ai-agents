@@ -69,7 +69,7 @@ export function Sidebar({
               <div
                 key={chat.id}
                 className={`
-                  group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors
+                  px-3 py-2.5 rounded-lg cursor-pointer transition-colors overflow-hidden
                   ${chat.id === activeChatId
                     ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
                     : 'hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300'
@@ -80,31 +80,26 @@ export function Sidebar({
                   onClose();
                 }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-50">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{chat.title}</p>
-                  <p className="text-xs text-zinc-400 truncate">
+                <p className="text-sm truncate">{chat.title}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-zinc-400">
                     {new Date(chat.updatedAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
                     {' · '}
                     {chat.messages.length} сообщ.
                   </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Удалить этот чат?')) {
+                        onDeleteChat(chat.id);
+                      }
+                    }}
+                    className="px-2 py-0.5 rounded text-xs bg-red-100 dark:bg-red-900/40 text-red-500 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/60 hover:text-red-700 transition-colors"
+                    title="Удалить чат"
+                  >
+                    Удалить
+                  </button>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('Удалить этот чат?')) {
-                      onDeleteChat(chat.id);
-                    }
-                  }}
-                  className="w-8 h-8 rounded-md flex items-center justify-center bg-red-50 dark:bg-red-950/40 text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-600 transition-all shrink-0"
-                  title="Удалить чат"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                  </svg>
-                </button>
               </div>
             ))}
           </div>
