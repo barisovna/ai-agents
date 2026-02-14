@@ -22,7 +22,7 @@ import {
 import { AGENT_TEMPERATURES, MODEL_NAME, MAX_OUTPUT_TOKENS } from '@/lib/constants';
 import { searchWeb } from '@/lib/web-search';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const AGENT_PROMPTS: Record<AgentName, string> = {
   coder: CODER_PROMPT,
@@ -41,6 +41,28 @@ const AUTO_SEARCH_AGENTS: Set<AgentName> = new Set([
   'assistant',
 ]);
 
+// Keep conversation focused: first 2 messages (topic) + last N messages
+// This prevents context overflow and keeps the agent on track
+const MAX_MESSAGES = 30;
+
+function trimMessages(messages: UIMessage[]): UIMessage[] {
+  if (messages.length <= MAX_MESSAGES) return messages;
+
+  const first = messages.slice(0, 2);
+  const recent = messages.slice(-(MAX_MESSAGES - 2));
+
+  // Create a summary marker so the agent knows context was trimmed
+  const skipped = messages.length - MAX_MESSAGES;
+  const noteText = `[Системная заметка: пропущено ${skipped} сообщений из середины диалога. Первые сообщения и последние ${MAX_MESSAGES - 2} сообщений сохранены. Помни контекст всего разговора.]`;
+  const summaryMessage: UIMessage = {
+    id: 'context-note',
+    role: 'user' as const,
+    parts: [{ type: 'text' as const, text: noteText }],
+  };
+
+  return [...first, summaryMessage, ...recent];
+}
+
 function getLastUserMessage(messages: UIMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     if (messages[i].role === 'user') {
@@ -56,7 +78,8 @@ function getLastUserMessage(messages: UIMessage[]): string {
 }
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages: rawMessages }: { messages: UIMessage[] } = await req.json();
+  const messages = trimMessages(rawMessages);
 
   // Phase 1: Classify intent (non-streaming, fast)
   let selectedAgent: AgentName = 'assistant';
