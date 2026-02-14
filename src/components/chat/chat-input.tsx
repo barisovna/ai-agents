@@ -134,6 +134,8 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           />
 
           <textarea
+            name="message"
+            id="message-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
