@@ -22,7 +22,7 @@ import {
 import { AGENT_TEMPERATURES, MODEL_NAME, MAX_OUTPUT_TOKENS } from '@/lib/constants';
 import { searchWeb } from '@/lib/web-search';
 
-export const maxDuration = 600;
+export const maxDuration = 300;
 
 const AGENT_PROMPTS: Record<AgentName, string> = {
   coder: CODER_PROMPT,
