@@ -8,6 +8,7 @@ const PROMPTS = [
   { emoji: '🎪', text: 'Собери ключевые слова для Яндекс Директ', agent: 'Targeting' },
   { emoji: '📊', text: 'Сравни React, Vue и Svelte', agent: 'Analyst' },
   { emoji: '🤖', text: 'Составь план на неделю для фрилансера', agent: 'Assistant' },
+  { emoji: '♟️', text: 'Проанализируй мой проект и найди слабые места', agent: 'Strategist' },
 ];
 
 interface QuickPromptsProps {

@@ -18,6 +18,7 @@ import {
   TARGETING_PROMPT,
   ANALYST_PROMPT,
   ASSISTANT_PROMPT,
+  STRATEGIST_PROMPT,
 } from '@/lib/prompts';
 import { AGENT_TEMPERATURES, MODEL_NAME, MAX_OUTPUT_TOKENS } from '@/lib/constants';
 import { searchWeb } from '@/lib/web-search';
@@ -31,6 +32,7 @@ const AGENT_PROMPTS: Record<AgentName, string> = {
   targeting: TARGETING_PROMPT,
   analyst: ANALYST_PROMPT,
   assistant: ASSISTANT_PROMPT,
+  strategist: STRATEGIST_PROMPT,
 };
 
 // Agents that benefit from web search
@@ -39,6 +41,7 @@ const AUTO_SEARCH_AGENTS: Set<AgentName> = new Set([
   'targeting',
   'analyst',
   'assistant',
+  'strategist',
 ]);
 
 // Short messages that don't need web search
@@ -104,7 +107,7 @@ export async function POST(req: Request) {
             routeToAgent: tool({
               description: 'Route the user message to the best specialist agent',
               inputSchema: z.object({
-                agentName: z.enum(['coder', 'writer', 'marketer', 'targeting', 'analyst', 'assistant']),
+                agentName: z.enum(['coder', 'writer', 'marketer', 'targeting', 'analyst', 'assistant', 'strategist']),
                 reasoning: z.string(),
               }),
             }),

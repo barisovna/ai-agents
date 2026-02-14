@@ -8,4 +8,5 @@ export const AGENT_TEMPERATURES: Record<string, number> = {
   targeting: 0.5,
   analyst: 0.4,
   assistant: 0.6,
+  strategist: 0.5,
 };

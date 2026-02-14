@@ -5,8 +5,9 @@ import { runMarketerAgent } from './marketer';
 import { runTargetingAgent } from './targeting';
 import { runAnalystAgent } from './analyst';
 import { runAssistantAgent } from './assistant';
+import { runStrategistAgent } from './strategist';
 
-export const AGENT_NAMES = ['coder', 'writer', 'marketer', 'targeting', 'analyst', 'assistant'] as const;
+export const AGENT_NAMES = ['coder', 'writer', 'marketer', 'targeting', 'analyst', 'assistant', 'strategist'] as const;
 export type AgentName = (typeof AGENT_NAMES)[number];
 
 type AgentRunner = (messages: UIMessage[]) => ReturnType<typeof runCoderAgent>;
@@ -18,6 +19,7 @@ const agentMap: Record<AgentName, AgentRunner> = {
   targeting: runTargetingAgent,
   analyst: runAnalystAgent,
   assistant: runAssistantAgent,
+  strategist: runStrategistAgent,
 };
 
 export async function runSpecialistAgent(
