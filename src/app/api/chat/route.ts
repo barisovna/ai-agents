@@ -153,7 +153,13 @@ export async function POST(req: Request) {
     const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
     const dayNames = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
     const dateStr = `${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()} года, ${dayNames[now.getDay()]}`;
-    const dateContext = `\n\n## Текущая дата:\nСегодня: ${dateStr}. Рынок: Россия.\n`;
+    const dateContext = `\n\n## КРИТИЧЕСКИ ВАЖНО — Текущая дата: ${dateStr}
+- Сейчас ${now.getFullYear()} год. ЗАПРЕЩЕНО ссылаться на данные прошлых лет как на актуальные.
+- Если у тебя нет свежих данных за ${now.getFullYear()} год — так и скажи: "точных данных за ${now.getFullYear()} у меня нет, рекомендую проверить на официальном сайте".
+- НИКОГДА не пиши "актуально на 2024 год" или любой прошлый год. Либо даёшь свежее, либо честно говоришь что не знаешь.
+- Если в контексте есть данные из веб-поиска — используй ТОЛЬКО их, а не свои старые знания.
+- Рынок: Россия (основной фокус).
+\n`;
 
     const basePrompt = AGENT_PROMPTS[selectedAgent] + dateContext;
     const systemPrompt = searchContext ? `${basePrompt}\n${searchContext}` : basePrompt;
