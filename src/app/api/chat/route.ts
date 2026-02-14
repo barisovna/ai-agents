@@ -33,18 +33,18 @@ const AGENT_PROMPTS: Record<AgentName, string> = {
   assistant: ASSISTANT_PROMPT,
 };
 
-// Agents that get automatic web search before responding
-// All agents get web search for maximum freshness
+// Agents that benefit from web search
 const AUTO_SEARCH_AGENTS: Set<AgentName> = new Set([
   'marketer',
   'targeting',
   'analyst',
   'assistant',
-  'coder',
-  'writer',
 ]);
 
-// Keep conversation focused: first 2 messages (topic) + last N messages
+// Short messages that don't need web search
+const MIN_SEARCH_LENGTH = 15;
+
+// Keep conversation focused
 const MAX_MESSAGES = 30;
 
 function trimMessages(messages: UIMessage[]): UIMessage[] {
@@ -54,7 +54,7 @@ function trimMessages(messages: UIMessage[]): UIMessage[] {
   const recent = messages.slice(-(MAX_MESSAGES - 2));
 
   const skipped = messages.length - MAX_MESSAGES;
-  const noteText = `[Системная заметка: пропущено ${skipped} сообщений из середины диалога. Первые сообщения и последние ${MAX_MESSAGES - 2} сообщений сохранены. Помни контекст всего разговора.]`;
+  const noteText = `[Системная заметка: пропущено ${skipped} сообщений из середины диалога. Первые сообщения и последние ${MAX_MESSAGES - 2} сообщений сохранены.]`;
   const summaryMessage: UIMessage = {
     id: 'context-note',
     role: 'user' as const,
@@ -78,101 +78,122 @@ function getLastUserMessage(messages: UIMessage[]): string {
   return '';
 }
 
+// Timeout wrapper for any async operation
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 export async function POST(req: Request) {
-  const { messages: rawMessages }: { messages: UIMessage[] } = await req.json();
-  const messages = trimMessages(rawMessages);
-
-  // Phase 1: Classify intent (non-streaming, fast)
-  let selectedAgent: AgentName = 'assistant';
-
   try {
-    const routingResult = await generateText({
-      model: deepseek('deepseek-chat'),
-      system: ORCHESTRATOR_PROMPT,
-      messages: await convertToModelMessages(messages),
-      tools: {
-        routeToAgent: tool({
-          description: 'Route the user message to the best specialist agent',
-          inputSchema: z.object({
-            agentName: z.enum(['coder', 'writer', 'marketer', 'targeting', 'analyst', 'assistant']),
-            reasoning: z.string(),
-          }),
+    const { messages: rawMessages }: { messages: UIMessage[] } = await req.json();
+    const messages = trimMessages(rawMessages);
+
+    // Phase 1: Classify intent (non-streaming, fast) — 10s timeout
+    let selectedAgent: AgentName = 'assistant';
+
+    try {
+      const routingResult = await withTimeout(
+        generateText({
+          model: deepseek('deepseek-chat'),
+          system: ORCHESTRATOR_PROMPT,
+          messages: await convertToModelMessages(messages),
+          tools: {
+            routeToAgent: tool({
+              description: 'Route the user message to the best specialist agent',
+              inputSchema: z.object({
+                agentName: z.enum(['coder', 'writer', 'marketer', 'targeting', 'analyst', 'assistant']),
+                reasoning: z.string(),
+              }),
+            }),
+          },
+          toolChoice: { type: 'tool', toolName: 'routeToAgent' },
+          maxOutputTokens: 150,
+          temperature: 0.1,
         }),
-      },
-      toolChoice: { type: 'tool', toolName: 'routeToAgent' },
-      maxOutputTokens: 150,
-      temperature: 0.1,
-    });
+        10000,
+        null,
+      );
 
-    const call = routingResult.toolCalls[0];
-    if (call && 'input' in call) {
-      const input = call.input as { agentName: string; reasoning: string };
-      selectedAgent = input.agentName as AgentName;
+      if (routingResult) {
+        const call = routingResult.toolCalls[0];
+        if (call && 'input' in call) {
+          const input = call.input as { agentName: string; reasoning: string };
+          selectedAgent = input.agentName as AgentName;
+        }
+      }
+    } catch (error) {
+      console.error('Routing failed, falling back to assistant:', error);
     }
-  } catch (error) {
-    console.error('Routing failed, falling back to assistant:', error);
-  }
 
-  // Phase 2: Auto web search (before streaming, for relevant agents)
-  let searchContext = '';
-  const tavilyKey = process.env.TAVILY_API_KEY;
-  const shouldSearch = AUTO_SEARCH_AGENTS.has(selectedAgent);
-
-  console.log('[Search] Agent:', selectedAgent, '| Should search:', shouldSearch, '| Has Tavily key:', !!tavilyKey, '| Key prefix:', tavilyKey?.slice(0, 8) ?? 'MISSING');
-
-  if (shouldSearch && tavilyKey) {
+    // Phase 2: Web search (only for relevant agents + long enough queries) — 8s timeout
+    let searchContext = '';
+    const tavilyKey = process.env.TAVILY_API_KEY;
     const userMessage = getLastUserMessage(messages);
-    console.log('[Search] User message:', userMessage.slice(0, 100));
-    if (userMessage) {
+    const shouldSearch = AUTO_SEARCH_AGENTS.has(selectedAgent) && tavilyKey && userMessage.length >= MIN_SEARCH_LENGTH;
+
+    if (shouldSearch) {
       try {
-        console.log('[Search] Calling Tavily API...');
-        const results = await searchWeb(userMessage);
-        console.log('[Search] Results length:', results.length, '| First 200 chars:', results.slice(0, 200));
-        if (results && !results.includes('не настроен') && !results.includes('Ошибка')) {
-          searchContext = `\n\n## Актуальные данные из интернета (используй эту информацию в ответе, ссылайся на источники):\n\n${results}`;
-          console.log('[Search] Context injected, length:', searchContext.length);
-        } else {
-          console.log('[Search] Results filtered out (error or not configured)');
+        const results = await withTimeout(searchWeb(userMessage), 8000, '');
+        if (results && !results.includes('не настроен') && !results.includes('Ошибка') && results.length > 20) {
+          searchContext = `\n\n## Актуальные данные из интернета (используй в ответе, ссылайся на источники):\n\n${results}`;
         }
       } catch (error) {
         console.error('[Search] Failed:', error);
       }
     }
-  } else {
-    console.log('[Search] Skipped. Reason:', !shouldSearch ? 'agent not in auto-search list' : 'no TAVILY_API_KEY');
+
+    // Phase 3: Stream response
+    const now = new Date();
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const dayNames = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+    const dateStr = `${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()} года, ${dayNames[now.getDay()]}`;
+    const dateContext = `\n\n## Текущая дата:\nСегодня: ${dateStr}. Рынок: Россия.\n`;
+
+    const basePrompt = AGENT_PROMPTS[selectedAgent] + dateContext;
+    const systemPrompt = searchContext ? `${basePrompt}\n${searchContext}` : basePrompt;
+
+    const modelMessages = await convertToModelMessages(messages);
+
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        try {
+          writer.write({
+            type: 'data-agent' as const,
+            data: JSON.stringify({ agentName: selectedAgent }),
+          });
+
+          const result = streamText({
+            model: deepseek(MODEL_NAME),
+            system: systemPrompt,
+            messages: modelMessages,
+            temperature: AGENT_TEMPERATURES[selectedAgent] ?? 0.6,
+            maxOutputTokens: MAX_OUTPUT_TOKENS,
+          });
+
+          writer.merge(result.toUIMessageStream());
+        } catch (error) {
+          console.error('[Stream] Error:', error);
+          writer.write({
+            type: 'error' as const,
+            errorText: 'Ошибка генерации ответа. Попробуйте ещё раз.',
+          });
+        }
+      },
+      onError: (error) => {
+        console.error('[Stream onError]:', error);
+        return 'Ошибка при генерации ответа. Попробуйте отправить сообщение ещё раз.';
+      },
+    });
+
+    return createUIMessageStreamResponse({ stream });
+  } catch (error) {
+    console.error('[POST] Top-level error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Внутренняя ошибка сервера. Попробуйте ещё раз.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
   }
-
-  // Phase 3: Stream specialist response with fresh web data
-  const stream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      writer.write({
-        type: 'data-agent' as const,
-        data: JSON.stringify({ agentName: selectedAgent }),
-      });
-
-      // Inject current date so the agent always knows "today"
-      const now = new Date();
-      const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-      const dayNames = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
-      const dateStr = `${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()} года, ${dayNames[now.getDay()]}`;
-      const dateContext = `\n\n## Текущая дата и время:\nСегодня: ${dateStr}. Текущее время (сервер): ${now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}. Используй ТОЛЬКО актуальную информацию. Все данные, тренды, цены и рекомендации должны быть релевантны этой дате. Рынок: Россия (основной фокус).\n`;
-
-      const basePrompt = AGENT_PROMPTS[selectedAgent] + dateContext;
-      const systemPrompt = searchContext
-        ? `${basePrompt}\n${searchContext}`
-        : basePrompt;
-
-      const result = streamText({
-        model: deepseek(MODEL_NAME),
-        system: systemPrompt,
-        messages: await convertToModelMessages(messages),
-        temperature: AGENT_TEMPERATURES[selectedAgent] ?? 0.6,
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-      });
-
-      writer.merge(result.toUIMessageStream());
-    },
-  });
-
-  return createUIMessageStreamResponse({ stream });
 }
