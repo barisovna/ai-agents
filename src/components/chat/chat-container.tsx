@@ -9,8 +9,8 @@ interface ChatContainerProps {
   chat: ReturnType<typeof useChat>;
   currentAgent: string | null;
   agentMap: Map<string, string>;
-  activeArtifact: Artifact | null;
-  onOpenArtifact: (artifact: Artifact) => void;
+  artifacts: Artifact[];
+  onOpenArtifact: (artifacts: Artifact[]) => void;
   onCloseArtifact: () => void;
 }
 
@@ -18,7 +18,7 @@ export function ChatContainer({
   chat,
   currentAgent,
   agentMap,
-  activeArtifact,
+  artifacts,
   onOpenArtifact,
   onCloseArtifact,
 }: ChatContainerProps) {
@@ -35,7 +35,10 @@ export function ChatContainer({
             isLoading={isLoading}
             currentAgent={currentAgent}
             agentMap={agentMap}
-            onSendPrompt={(text) => sendMessage({ text })}
+            onSendPrompt={(text, agentName) => {
+              const options = agentName ? { body: { forceAgent: agentName } } : undefined;
+              sendMessage({ text }, options);
+            }}
             onOpenArtifact={onOpenArtifact}
           />
         </div>
@@ -46,8 +49,8 @@ export function ChatContainer({
       </div>
 
       {/* Artifact panel */}
-      {activeArtifact && (
-        <ArtifactPanel artifact={activeArtifact} onClose={onCloseArtifact} />
+      {artifacts.length > 0 && (
+        <ArtifactPanel artifacts={artifacts} onClose={onCloseArtifact} />
       )}
     </div>
   );

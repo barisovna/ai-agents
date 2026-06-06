@@ -1,18 +1,18 @@
 'use client';
 
 const PROMPTS = [
-  { emoji: '💻', text: 'Напиши функцию сортировки на Python', agent: 'Coder' },
-  { emoji: '✍️', text: 'Напиши пост для Telegram-канала про ИИ', agent: 'Writer' },
-  { emoji: '🎯', text: 'Составь стратегию продвижения в VK', agent: 'Marketer' },
-  { emoji: '🎪', text: 'Настрой таргет VK Реклама с нуля', agent: 'Targeting' },
-  { emoji: '🎪', text: 'Собери ключевые слова для Яндекс Директ', agent: 'Targeting' },
-  { emoji: '📊', text: 'Сравни React, Vue и Svelte', agent: 'Analyst' },
-  { emoji: '🤖', text: 'Составь план на неделю для фрилансера', agent: 'Assistant' },
-  { emoji: '♟️', text: 'Проанализируй мой проект и найди слабые места', agent: 'Strategist' },
+  { emoji: '💻', agentName: 'coder',      text: 'Напиши функцию сортировки на Python' },
+  { emoji: '✍️', agentName: 'writer',     text: 'Напиши пост для Telegram-канала про ИИ' },
+  { emoji: '🎯', agentName: 'marketer',   text: 'Составь стратегию продвижения в VK' },
+  { emoji: '🎪', agentName: 'targeting',  text: 'Настрой таргет VK Реклама с нуля' },
+  { emoji: '🎪', agentName: 'targeting',  text: 'Собери ключевые слова для Яндекс Директ' },
+  { emoji: '📊', agentName: 'analyst',    text: 'Сравни React, Vue и Svelte' },
+  { emoji: '🤖', agentName: 'assistant',  text: 'Составь план на неделю для фрилансера' },
+  { emoji: '♟️', agentName: 'strategist', text: 'Проанализируй мой проект и найди слабые места' },
 ];
 
 interface QuickPromptsProps {
-  onSelect: (text: string) => void;
+  onSelect: (text: string, agentName?: string) => void;
 }
 
 export function QuickPrompts({ onSelect }: QuickPromptsProps) {
@@ -32,7 +32,8 @@ export function QuickPrompts({ onSelect }: QuickPromptsProps) {
           {PROMPTS.map((p) => (
             <button
               key={p.text}
-              onClick={() => onSelect(p.text)}
+              type="button"
+              onClick={() => onSelect(p.text, p.agentName)}
               className="text-left px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group"
             >
               <div className="flex items-start gap-3">
@@ -41,7 +42,7 @@ export function QuickPrompts({ onSelect }: QuickPromptsProps) {
                   <p className="text-sm text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                     {p.text}
                   </p>
-                  <p className="text-xs text-zinc-400 mt-0.5">{p.agent}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5 capitalize">{p.agentName}</p>
                 </div>
               </div>
             </button>

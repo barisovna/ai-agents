@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { downloadFile } from '@/lib/chat-store';
+import { cn } from '@/lib/utils';
 
 export interface Artifact {
   id: string;
@@ -13,14 +14,24 @@ export interface Artifact {
 }
 
 interface ArtifactPanelProps {
-  artifact: Artifact | null;
+  artifacts: Artifact[];
   onClose: () => void;
 }
 
-export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
+export function ArtifactPanel({ artifacts, onClose }: ArtifactPanelProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
   const [copied, setCopied] = useState(false);
 
-  if (!artifact) return null;
+  useEffect(() => {
+    setActiveIndex(0);
+    setCopied(false);
+  }, [artifacts]);
+
+  if (artifacts.length === 0) return null;
+
+  const safeIndex = Math.min(activeIndex, artifacts.length - 1);
+  const artifact = artifacts[safeIndex];
+  const lineCount = artifact.content.split('\n').length;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(artifact.content);
@@ -32,8 +43,6 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
     const ext = getExtension(artifact.language);
     downloadFile(artifact.content, `${artifact.title.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_')}.${ext}`);
   };
-
-  const lineCount = artifact.content.split('\n').length;
 
   return (
     <div className="w-full lg:w-[500px] xl:w-[600px] border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col shrink-0 h-full">
@@ -50,6 +59,7 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
             </p>
             <p className="text-xs text-zinc-400">
               {artifact.language} · {lineCount} строк
+              {artifacts.length > 1 && ` · ${safeIndex + 1} из ${artifacts.length}`}
             </p>
           </div>
         </div>
@@ -90,7 +100,28 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Tabs — shown only when 2+ artifacts */}
+      {artifacts.length > 1 && (
+        <div className="flex overflow-x-auto border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 shrink-0">
+          {artifacts.map((a, i) => (
+            <button
+              key={a.id}
+              onClick={() => { setActiveIndex(i); setCopied(false); }}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 text-xs whitespace-nowrap border-b-2 transition-colors shrink-0',
+                i === safeIndex
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-white dark:bg-zinc-900'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300',
+              )}
+            >
+              <span className="font-mono text-[10px] text-zinc-400">{a.language}</span>
+              <span className="max-w-[120px] truncate">{a.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Code content */}
       <div className="flex-1 overflow-auto">
         <SyntaxHighlighter
           style={oneDark}
@@ -144,7 +175,6 @@ export function extractArtifacts(text: string): Artifact[] {
     const content = match[2].trim();
     const lines = content.split('\n').length;
 
-    // Only extract as artifact if code block is substantial (>8 lines)
     if (lines > 8) {
       artifacts.push({
         id: `artifact-${index}`,
@@ -160,11 +190,9 @@ export function extractArtifacts(text: string): Artifact[] {
 }
 
 function guessTitle(content: string, language: string): string {
-  // Try to find a function/class name
   const fnMatch = content.match(/(?:function|def|class|const|let|var|export)\s+(\w+)/);
   if (fnMatch) return fnMatch[1];
 
-  // Try first comment
   const commentMatch = content.match(/(?:\/\/|#|\/\*)\s*(.+)/);
   if (commentMatch) return commentMatch[1].slice(0, 30);
 

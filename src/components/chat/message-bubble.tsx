@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 interface MessageBubbleProps {
   message: UIMessage;
   agentName?: string | null;
-  onOpenArtifact?: (artifact: Artifact) => void;
+  onOpenArtifact?: (artifacts: Artifact[]) => void;
 }
 
 export function MessageBubble({ message, agentName, onOpenArtifact }: MessageBubbleProps) {
@@ -55,7 +55,7 @@ export function MessageBubble({ message, agentName, onOpenArtifact }: MessageBub
               hasArtifact={hasArtifact}
               onOpenArtifact={
                 hasArtifact && onOpenArtifact
-                  ? () => onOpenArtifact(artifacts[0])
+                  ? () => onOpenArtifact(artifacts)
                   : undefined
               }
             />

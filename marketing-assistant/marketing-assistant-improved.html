@@ -1331,7 +1331,6 @@
         async function sendToAI(userMessage) {
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
-
             document.getElementById('typingIndicator').classList.add('active');
 
             const systemPrompt = `Ты - профессиональный AI-помощник по маркетингу и продвижению в России. Сегодня ${new Date().toLocaleDateString('ru-RU')} (2026 год).
@@ -1356,24 +1355,16 @@
                     content: systemPrompt + contextPrompt + '\n\n' + expertPrompts[selectedExpert]
                 },
                 ...conversationHistory,
-                {
-                    role: 'user',
-                    content: userMessage
-                }
+                { role: 'user', content: userMessage }
             ];
 
             try {
-                // Получаем выбранную модель
                 const selectedModel = document.getElementById('aiModel')?.value || 'deepseek-chat';
-
-                // Устанавливаем max_tokens в зависимости от модели (увеличено для развёрнутых ответов)
                 const maxTokens = selectedModel === 'deepseek-reasoner' ? 16384 : 8192;
 
                 const response = await fetch('/api-proxy.php', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         model: selectedModel,
                         messages: messages,
@@ -1381,7 +1372,8 @@
                         max_tokens: maxTokens,
                         top_p: 0.95,
                         frequency_penalty: 0.5,
-                        presence_penalty: 0.3
+                        presence_penalty: 0.3,
+                        stream: true
                     })
                 });
 
@@ -1391,61 +1383,117 @@
                         const errorData = await response.json();
                         errorMessage = errorData.error || errorData.message || errorMessage;
                     } catch (e) {
-                        // Если не удалось распарсить JSON, значит сервер вернул HTML ошибку
-                        const textError = await response.text();
-                        console.error('Server returned non-JSON:', textError.substring(0, 200));
                         errorMessage = 'Ошибка сервера. Проверьте config.php и api-proxy.php';
                     }
                     throw new Error(errorMessage);
                 }
 
-                const data = await response.json();
+                // Hide typing indicator and create streaming bubble
+                document.getElementById('typingIndicator').classList.remove('active');
+                const { contentDiv, messageDiv } = addStreamingMessage();
+                const messagesContainer = document.getElementById('messages');
 
-                if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-                    throw new Error('Некорректный ответ от API');
+                let fullContent = '';
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() ?? '';
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const payload = line.slice(6).trim();
+                        if (payload === '[DONE]') continue;
+
+                        try {
+                            const chunk = JSON.parse(payload);
+                            // Skip reasoning_content (deepseek-reasoner thinking tokens)
+                            const delta = chunk.choices?.[0]?.delta?.content;
+                            if (delta) {
+                                fullContent += delta;
+                                contentDiv.textContent = fullContent;
+                                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                            }
+                        } catch (e) { /* malformed SSE chunk — skip */ }
+                    }
                 }
 
-                const assistantMessage = data.choices[0].message.content;
+                // Stream done: render markdown and add action buttons
+                if (fullContent) {
+                    contentDiv.innerHTML = marked.parse(fullContent);
+                    contentDiv.style.whiteSpace = '';
+                    finalizeStreamingMessage(messageDiv);
+                }
 
-                conversationHistory.push({role: 'user', content: userMessage});
-                conversationHistory.push({role: 'assistant', content: assistantMessage});
-
+                conversationHistory.push({ role: 'user', content: userMessage });
+                conversationHistory.push({ role: 'assistant', content: fullContent });
                 if (conversationHistory.length > 20) {
                     conversationHistory = conversationHistory.slice(-20);
                 }
-
-                document.getElementById('typingIndicator').classList.remove('active');
-                addMessage('assistant', assistantMessage);
+                if (currentSessionId) saveSession();
 
             } catch (error) {
                 console.error('Ошибка:', error);
                 document.getElementById('typingIndicator').classList.remove('active');
 
-                // Показываем понятное сообщение пользователю
-                let userMessage = error.message;
-                if (userMessage.includes('JSON')) {
-                    userMessage = 'Ошибка сервера. Проверьте api-proxy.php и config.php';
+                let errMsg = error.message;
+                if (errMsg.includes('JSON')) {
+                    errMsg = 'Ошибка сервера. Проверьте api-proxy.php и config.php';
                 }
+                showToast('Ошибка: ' + errMsg, 'error');
 
-                showToast('Ошибка: ' + userMessage, 'error');
-
-                // Добавляем сообщение об ошибке в чат для видимости
-                const debugMessage = `❌ Произошла ошибка: ${userMessage}
+                const debugMessage = `❌ Произошла ошибка: ${errMsg}
 
 **Что проверить:**
-1. **API ключ** - правильность в config.php
-2. **Интернет** - соединение с api.deepseek.com
-3. **Логи** - файлы api-debug.log и api-errors.log на сервере
-4. **Консоль** - F12 в браузере для деталей
+1. **API ключ** — правильность в config.php
+2. **Интернет** — соединение с api.deepseek.com
+3. **Логи** — файлы api-debug.log и api-errors.log на сервере
+4. **Консоль** — F12 в браузере для деталей
 
 **Текущая модель:** ${document.getElementById('aiModel')?.value || 'deepseek-chat'}
 
-Если ошибка "Connection error" - проверьте файрвол или настройки сервера.`;
+Если ошибка "Connection error" — проверьте файрвол или настройки сервера.`;
 
                 addMessage('assistant', debugMessage);
             } finally {
                 sendBtn.disabled = false;
             }
+        }
+
+        // Creates an empty assistant bubble for streaming into
+        function addStreamingMessage() {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.style.whiteSpace = 'pre-wrap'; // Raw text during streaming
+            messageDiv.appendChild(contentDiv);
+
+            const typingIndicator = document.getElementById('typingIndicator');
+            messagesDiv.insertBefore(messageDiv, typingIndicator);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            return { contentDiv, messageDiv };
+        }
+
+        // Appends copy/regenerate buttons once streaming is complete
+        function finalizeStreamingMessage(messageDiv) {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'message-actions';
+            actionsDiv.innerHTML =
+                '<button class="message-action-btn" onclick="copyText(this)">' +
+                '<i class="fas fa-copy"></i> Копировать</button>' +
+                '<button class="message-action-btn" onclick="regenerateResponse(this)">' +
+                '<i class="fas fa-redo"></i> Обновить</button>';
+            messageDiv.appendChild(actionsDiv);
         }
 
         function handleEnter(event) {

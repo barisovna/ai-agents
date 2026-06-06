@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.18",
     "@ai-sdk/react": "^3.0.77",
+    "@tanstack/react-virtual": "^3.14.2",
     "ai": "^6.0.75",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

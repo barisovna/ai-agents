@@ -26,7 +26,7 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatList, setChatList] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatIdState] = useState<string | null>(null);
-  const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
+  const [activeArtifacts, setActiveArtifacts] = useState<Artifact[]>([]);
   const [mounted, setMounted] = useState(false);
 
   const chat = useChat({
@@ -128,7 +128,7 @@ export default function ChatPage() {
     agentMapRef.current = new Map();
     chat.setMessages([]);
     setChatList(getChats());
-    setActiveArtifact(null);
+    setActiveArtifacts([]);
   }, [chat]);
 
   const handleSelectChat = useCallback(
@@ -144,7 +144,7 @@ export default function ChatPage() {
         agentMapRef.current = new Map();
         chat.setMessages([]);
       }
-      setActiveArtifact(null);
+      setActiveArtifacts([]);
     },
     [activeChatId, chat],
   );
@@ -201,9 +201,9 @@ export default function ChatPage() {
           chat={chat}
           currentAgent={currentAgent}
           agentMap={agentMapRef.current}
-          activeArtifact={activeArtifact}
-          onOpenArtifact={setActiveArtifact}
-          onCloseArtifact={() => setActiveArtifact(null)}
+          artifacts={activeArtifacts}
+          onOpenArtifact={setActiveArtifacts}
+          onCloseArtifact={() => setActiveArtifacts([])}
         />
       </div>
     </div>

@@ -10,7 +10,7 @@ import {
 import { deepseek } from '@/lib/deepseek';
 import { z } from 'zod';
 import { ORCHESTRATOR_PROMPT } from '@/lib/prompts';
-import { type AgentName, AGENT_CONFIGS, AUTO_SEARCH_AGENTS } from '@/agents/registry';
+import { type AgentName, AGENT_NAMES, AGENT_CONFIGS, AUTO_SEARCH_AGENTS } from '@/agents/registry';
 import { MODEL_NAME, MAX_OUTPUT_TOKENS } from '@/lib/constants';
 import { searchWeb } from '@/lib/web-search';
 
@@ -63,14 +63,17 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 
 export async function POST(req: Request) {
   try {
-    const { messages: rawMessages }: { messages: UIMessage[] } = await req.json();
+    const { messages: rawMessages, forceAgent }: { messages: UIMessage[]; forceAgent?: string } = await req.json();
 
     const messages = trimMessages(rawMessages);
 
     // Phase 1: Classify intent (non-streaming, fast) — 10s timeout
+    // Skip if client already knows the target agent (e.g. QuickPrompts direct routing)
     let selectedAgent: AgentName = 'assistant';
 
-    try {
+    if (forceAgent && AGENT_NAMES.includes(forceAgent as AgentName)) {
+      selectedAgent = forceAgent as AgentName;
+    } else try {
       const routingResult = await withTimeout(
         generateText({
           model: deepseek('deepseek-chat'),
