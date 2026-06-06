@@ -41,6 +41,7 @@ export const AUTO_SEARCH_AGENTS: Set<AgentName> = new Set([
   'analyst',
   'assistant',
   'strategist',
+  'writer',
 ]);
 
 type AgentRunner = (messages: UIMessage[]) => ReturnType<typeof runCoderAgent>;
