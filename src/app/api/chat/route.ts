@@ -10,39 +10,11 @@ import {
 import { deepseek } from '@/lib/deepseek';
 import { z } from 'zod';
 import { ORCHESTRATOR_PROMPT } from '@/lib/prompts';
-import { type AgentName } from '@/agents/registry';
-import {
-  CODER_PROMPT,
-  WRITER_PROMPT,
-  MARKETER_PROMPT,
-  TARGETING_PROMPT,
-  ANALYST_PROMPT,
-  ASSISTANT_PROMPT,
-  STRATEGIST_PROMPT,
-} from '@/lib/prompts';
-import { AGENT_TEMPERATURES, MODEL_NAME, MAX_OUTPUT_TOKENS } from '@/lib/constants';
+import { type AgentName, AGENT_CONFIGS, AUTO_SEARCH_AGENTS } from '@/agents/registry';
+import { MODEL_NAME, MAX_OUTPUT_TOKENS } from '@/lib/constants';
 import { searchWeb } from '@/lib/web-search';
 
 export const maxDuration = 300;
-
-const AGENT_PROMPTS: Record<AgentName, string> = {
-  coder: CODER_PROMPT,
-  writer: WRITER_PROMPT,
-  marketer: MARKETER_PROMPT,
-  targeting: TARGETING_PROMPT,
-  analyst: ANALYST_PROMPT,
-  assistant: ASSISTANT_PROMPT,
-  strategist: STRATEGIST_PROMPT,
-};
-
-// Agents that benefit from web search
-const AUTO_SEARCH_AGENTS: Set<AgentName> = new Set([
-  'marketer',
-  'targeting',
-  'analyst',
-  'assistant',
-  'strategist',
-]);
 
 // Short messages that don't need web search
 const MIN_SEARCH_LENGTH = 15;
@@ -161,7 +133,7 @@ export async function POST(req: Request) {
 - Рынок: Россия (основной фокус).
 \n`;
 
-    const basePrompt = AGENT_PROMPTS[selectedAgent] + dateContext;
+    const basePrompt = AGENT_CONFIGS[selectedAgent].systemPrompt + dateContext;
     const systemPrompt = searchContext ? `${basePrompt}\n${searchContext}` : basePrompt;
 
     const modelMessages = await convertToModelMessages(messages);
@@ -178,7 +150,7 @@ export async function POST(req: Request) {
             model: deepseek(MODEL_NAME),
             system: systemPrompt,
             messages: modelMessages,
-            temperature: AGENT_TEMPERATURES[selectedAgent] ?? 0.6,
+            temperature: AGENT_CONFIGS[selectedAgent].temperature,
             maxOutputTokens: MAX_OUTPUT_TOKENS,
           });
 

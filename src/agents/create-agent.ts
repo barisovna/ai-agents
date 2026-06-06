@@ -1,11 +1,7 @@
 import { deepseek } from '@/lib/deepseek';
 import { streamText, type UIMessage, convertToModelMessages } from 'ai';
 import { MODEL_NAME, MAX_OUTPUT_TOKENS } from '@/lib/constants';
-
-interface AgentConfig {
-  systemPrompt: string;
-  temperature: number;
-}
+import { type AgentConfig } from './registry';
 
 export function createSpecialistAgent(config: AgentConfig) {
   return async function run(messages: UIMessage[]) {
