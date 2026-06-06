@@ -61,9 +61,25 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   ]);
 }
 
+// Strip messages to only text parts — prevents convertToModelMessages errors
+// on data-agent/tool-call parts stored in localStorage from previous sessions
+function sanitizeMessages(messages: UIMessage[]): UIMessage[] {
+  return messages
+    .map((m) => ({
+      ...m,
+      parts: (m.parts ?? []).filter(
+        (p): p is { type: 'text'; text: string } =>
+          p.type === 'text' && typeof (p as { type: string; text?: string }).text === 'string',
+      ),
+    }))
+    .filter((m) => m.parts.length > 0);
+}
+
 export async function POST(req: Request) {
   try {
-    const { messages: rawMessages, forceAgent }: { messages: UIMessage[]; forceAgent?: string } = await req.json();
+    const body = await req.json();
+    const rawMessages: UIMessage[] = Array.isArray(body?.messages) ? body.messages : [];
+    const forceAgent: string | undefined = body?.forceAgent;
 
     const messages = trimMessages(rawMessages);
 
@@ -78,7 +94,7 @@ export async function POST(req: Request) {
         generateText({
           model: deepseek('deepseek-chat'),
           system: ORCHESTRATOR_PROMPT,
-          messages: await convertToModelMessages(messages),
+          messages: await convertToModelMessages(sanitizeMessages(messages)),
           tools: {
             routeToAgent: tool({
               description: 'Route the user message to the best specialist agent',
@@ -148,12 +164,7 @@ export async function POST(req: Request) {
             data: JSON.stringify({ agentName: selectedAgent }),
           });
 
-          // Filter to only text/tool parts to avoid convertToModelMessages errors on custom data parts
-          const safeMessages = messages.map((m) => ({
-            ...m,
-            parts: m.parts?.filter((p) => p.type === 'text' || p.type === 'tool-call' || p.type === 'tool-result') ?? [],
-          }));
-          const modelMessages = await convertToModelMessages(safeMessages);
+          const modelMessages = await convertToModelMessages(sanitizeMessages(messages));
 
           const result = streamText({
             model: deepseek(MODEL_NAME),
