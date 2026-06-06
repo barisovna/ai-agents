@@ -64,6 +64,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 export async function POST(req: Request) {
   try {
     const { messages: rawMessages }: { messages: UIMessage[] } = await req.json();
+
     const messages = trimMessages(rawMessages);
 
     // Phase 1: Classify intent (non-streaming, fast) — 10s timeout
