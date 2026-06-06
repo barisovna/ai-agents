@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Only protect /api/chat — and only when CHAT_API_KEY is set
   const validKey = process.env.CHAT_API_KEY;
   if (!validKey) return NextResponse.next();

@@ -140,8 +140,6 @@ export async function POST(req: Request) {
     const basePrompt = AGENT_CONFIGS[selectedAgent].systemPrompt + dateContext;
     const systemPrompt = searchContext ? `${basePrompt}\n${searchContext}` : basePrompt;
 
-    const modelMessages = await convertToModelMessages(messages);
-
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
         try {
@@ -149,6 +147,13 @@ export async function POST(req: Request) {
             type: 'data-agent' as const,
             data: JSON.stringify({ agentName: selectedAgent }),
           });
+
+          // Filter to only text/tool parts to avoid convertToModelMessages errors on custom data parts
+          const safeMessages = messages.map((m) => ({
+            ...m,
+            parts: m.parts?.filter((p) => p.type === 'text' || p.type === 'tool-call' || p.type === 'tool-result') ?? [],
+          }));
+          const modelMessages = await convertToModelMessages(safeMessages);
 
           const result = streamText({
             model: deepseek(MODEL_NAME),
