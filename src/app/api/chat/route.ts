@@ -75,6 +75,41 @@ function sanitizeMessages(messages: UIMessage[]): UIMessage[] {
     .filter((m) => m.parts.length > 0);
 }
 
+// Ground-check: after the model finishes responding, verify that any URL it cited
+// actually appears in the search results we gave it. Catches the case where the
+// model invents a plausible-looking link instead of honestly saying "I don't know" —
+// the same fabrication failure mode as invented study names, just for URLs.
+const URL_REGEX = /https?:\/\/[^\s\)\]"'<>]+/g;
+
+function extractUrls(text: string): string[] {
+  return Array.from(text.matchAll(URL_REGEX), (m) => m[0].replace(/[.,;:!?]+$/, ''));
+}
+
+function normalizeUrl(url: string): string {
+  return url.toLowerCase().replace(/\/+$/, '');
+}
+
+function findUnverifiedUrls(responseText: string, searchContext: string): string[] {
+  const contextUrls = new Set(extractUrls(searchContext).map(normalizeUrl));
+  const seen = new Set<string>();
+  const unverified: string[] = [];
+
+  for (const url of extractUrls(responseText)) {
+    const normalized = normalizeUrl(url);
+    if (!contextUrls.has(normalized) && !seen.has(normalized)) {
+      seen.add(normalized);
+      unverified.push(url);
+    }
+  }
+
+  return unverified;
+}
+
+function buildGroundCheckWarning(unverifiedUrls: string[]): string {
+  const list = unverifiedUrls.map((url) => `- ${url}`).join('\n');
+  return `\n\n---\n⚠️ **Не смог подтвердить часть ссылок через веб-поиск — проверь их перед использованием:**\n${list}`;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -181,6 +216,28 @@ export async function POST(req: Request) {
           });
 
           writer.merge(result.toUIMessageStream());
+
+          // Ground-check runs only for agents that receive web-search grounding —
+          // for other agents (e.g. coder), citing docs/links is normal and expected,
+          // and we have no searchContext to verify against anyway.
+          if (AUTO_SEARCH_AGENTS.has(selectedAgent)) {
+            try {
+              const finalText = await result.text;
+              const unverifiedUrls = findUnverifiedUrls(finalText, searchContext);
+              if (unverifiedUrls.length > 0) {
+                const warningId = 'groundcheck-warning';
+                writer.write({ type: 'text-start' as const, id: warningId });
+                writer.write({
+                  type: 'text-delta' as const,
+                  id: warningId,
+                  delta: buildGroundCheckWarning(unverifiedUrls),
+                });
+                writer.write({ type: 'text-end' as const, id: warningId });
+              }
+            } catch (error) {
+              console.error('[GroundCheck] Failed:', error);
+            }
+          }
         } catch (error) {
           console.error('[Stream] Error:', error);
           writer.write({
