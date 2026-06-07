@@ -7,17 +7,108 @@ type PromptDef = {
   emoji: string;
   agentName: string;
   text: string;
-  fields?: PromptField[];
-  buildPrompt?: (values: Record<string, string>) => string;
+  description: string;
+  fields: PromptField[];
+  buildPrompt: (values: Record<string, string>) => string;
 };
 
 const PROMPTS: PromptDef[] = [
-  { emoji: '💻', agentName: 'coder', text: 'Напиши функцию сортировки на Python' },
-  { emoji: '✍️', agentName: 'writer', text: 'Напиши пост для Telegram-канала про ИИ' },
+  {
+    emoji: '💻',
+    agentName: 'coder',
+    text: 'Напиши функцию сортировки на Python',
+    description:
+      'Готовый код под вашу задачу — для учебных целей, подготовки к собеседованию или быстрого старта проекта.',
+    fields: [
+      {
+        name: 'data',
+        label: 'Что нужно сортировать?',
+        type: 'text',
+        placeholder: 'список чисел / строки по алфавиту / объекты по дате',
+        required: true,
+        defaultValue: '',
+      },
+      {
+        name: 'priority',
+        label: 'Что важнее?',
+        type: 'select',
+        defaultValue: 'не важно — покажи стандартный подход',
+        options: [
+          { value: 'не важно — покажи стандартный подход', label: 'не важно — покажи стандартный подход' },
+          { value: 'понятный код для обучения, с пояснениями', label: 'понятный код для обучения, с пояснениями' },
+          { value: 'производительность на больших объёмах данных', label: 'производительность на больших объёмах данных' },
+          { value: 'стабильность — сохранить порядок одинаковых элементов', label: 'стабильность — сохранить порядок одинаковых элементов' },
+        ],
+      },
+      {
+        name: 'style',
+        label: 'Формат ответа',
+        type: 'select',
+        defaultValue: 'с комментариями построчно',
+        options: [
+          { value: 'с комментариями построчно', label: 'с комментариями построчно' },
+          { value: 'компактный код, без пояснений', label: 'компактный код, без пояснений' },
+        ],
+      },
+    ],
+    buildPrompt: (v) =>
+      `Напиши функцию сортировки на Python со следующими вводными:
+— Что сортируем: ${v.data}
+— Приоритет: ${v.priority}
+— Формат ответа: ${v.style}
+
+Покажи рабочий код, объясни выбор алгоритма и сложность по времени/памяти (Big O).`,
+  },
+  {
+    emoji: '✍️',
+    agentName: 'writer',
+    text: 'Напиши пост для Telegram-канала про ИИ',
+    description:
+      'Черновик поста с цепляющим началом и структурой под мобильный экран — останется только проверить и опубликовать.',
+    fields: [
+      {
+        name: 'angle',
+        label: 'О чём конкретно пост?',
+        type: 'text',
+        placeholder:
+          'как ИИ меняет работу маркетолога / личный кейс использования ChatGPT / разбор новой нейросети',
+        required: true,
+        defaultValue: '',
+      },
+      {
+        name: 'tone',
+        label: 'Тон поста',
+        type: 'select',
+        defaultValue: 'нейтрально-информационный',
+        options: [
+          { value: 'нейтрально-информационный', label: 'нейтрально-информационный' },
+          { value: 'экспертный, по делу', label: 'экспертный, по делу' },
+          { value: 'лёгкий, разговорный', label: 'лёгкий, разговорный' },
+          { value: 'провокационный, с дискуссией в комментариях', label: 'провокационный, с дискуссией в комментариях' },
+        ],
+      },
+      {
+        name: 'audience',
+        label: 'Аудитория канала (необязательно)',
+        type: 'text',
+        placeholder: 'предприниматели / разработчики / широкая аудитория без техфона',
+        defaultValue: 'широкая аудитория, интересующаяся темой ИИ — пиши без узкого жаргона',
+      },
+    ],
+    buildPrompt: (v) =>
+      `Напиши пост для Telegram-канала про ИИ со следующими вводными:
+— Тема/угол: ${v.angle}
+— Тон: ${v.tone}
+— Аудитория канала: ${v.audience}
+
+Сделай пост готовым к публикации: цепляющее начало, структура с абзацами под мобильный экран, естественный призыв к обсуждению в конце.`,
+  },
   {
     emoji: '🎯',
     agentName: 'marketer',
     text: 'Составь стратегию продвижения в VK',
+    description:
+      'Пошаговый план продвижения вместо размытых советов «ведите соцсети активнее» — каналы, форматы, график публикаций.',
     fields: [
       {
         name: 'niche',
@@ -59,6 +150,8 @@ const PROMPTS: PromptDef[] = [
     emoji: '🎪',
     agentName: 'targeting',
     text: 'Настрой таргет VK Реклама с нуля',
+    description:
+      'Настройка рекламного кабинета по шагам — полезно, если запускаете первую кампанию и не хотите слить бюджет на ощупь.',
     fields: [
       {
         name: 'niche',
@@ -100,6 +193,8 @@ const PROMPTS: PromptDef[] = [
     emoji: '🎪',
     agentName: 'targeting',
     text: 'Собери ключевые слова для Яндекс Директ',
+    description:
+      'Семантическое ядро с группировкой по «температуре» и минус-словами — экономит часы ручного подбора фраз.',
     fields: [
       {
         name: 'niche',
@@ -136,11 +231,60 @@ const PROMPTS: PromptDef[] = [
 
 Сгруппируй ключи по смыслу (горячие/тёплые/холодные), укажи минус-слова и дай рекомендации по структуре кампании.`,
   },
-  { emoji: '📊', agentName: 'analyst', text: 'Сравни React, Vue и Svelte' },
+  {
+    emoji: '📊',
+    agentName: 'analyst',
+    text: 'Сравни React, Vue и Svelte',
+    description:
+      'Структурированное сравнение под вашу конкретную задачу — выбор стека, подготовка к собеседованию или просто разобраться в теме.',
+    fields: [
+      {
+        name: 'purpose',
+        label: 'Для чего сравниваете?',
+        type: 'text',
+        placeholder: 'выбираю стек для нового проекта / готовлюсь к собеседованию / просто интересно, в чём разница',
+        required: true,
+        defaultValue: '',
+      },
+      {
+        name: 'criteria',
+        label: 'Что важнее всего при выборе?',
+        type: 'select',
+        defaultValue: 'не уточнено — рассмотри все аспекты сбалансированно',
+        options: [
+          { value: 'не уточнено — рассмотри все аспекты сбалансированно', label: 'не уточнено — рассмотри все аспекты сбалансированно' },
+          { value: 'скорость разработки и простота входа', label: 'скорость разработки и простота входа' },
+          { value: 'производительность и масштабируемость', label: 'производительность и масштабируемость' },
+          { value: 'размер community и доступность вакансий', label: 'размер community и доступность вакансий' },
+        ],
+      },
+      {
+        name: 'level',
+        label: 'Ваш текущий опыт',
+        type: 'select',
+        defaultValue: 'не указан',
+        options: [
+          { value: 'не указан', label: 'не указан' },
+          { value: 'начинающий — объясняй термины', label: 'начинающий — объясняй термины' },
+          { value: 'есть опыт с одним из фреймворков', label: 'есть опыт с одним из фреймворков' },
+          { value: 'опытный разработчик — можно без базовых объяснений', label: 'опытный разработчик — можно без базовых объяснений' },
+        ],
+      },
+    ],
+    buildPrompt: (v) =>
+      `Сравни React, Vue и Svelte со следующими вводными:
+— Цель сравнения: ${v.purpose}
+— Что важнее всего: ${v.criteria}
+— Мой уровень: ${v.level}
+
+Дай структурированное сравнение по ключевым аспектам и заверши чёткой рекомендацией или выводом, который отвечает именно на цель сравнения — без обтекаемого "оба хороши, зависит от задач".`,
+  },
   {
     emoji: '🤖',
     agentName: 'assistant',
     text: 'Составь план на неделю для фрилансера',
+    description:
+      'План по дням с балансом между текущими проектами и поиском новых клиентов — когда всё горит и непонятно, за что хвататься.',
     fields: [
       {
         name: 'field',
@@ -182,6 +326,8 @@ const PROMPTS: PromptDef[] = [
     emoji: '♟️',
     agentName: 'strategist',
     text: 'Проанализируй мой проект и найди слабые места',
+    description:
+      'Разбор по фреймворку «4 ПОЧЕМУ» с конкретными точками роста — если продажи не идут, а где затык — непонятно.',
     fields: [
       {
         name: 'project',
@@ -253,7 +399,7 @@ export function QuickPrompts({ onSelect }: QuickPromptsProps) {
             >
               <button
                 type="button"
-                onClick={() => (p.fields ? toggleExpand(i) : onSelect(p.text, p.agentName))}
+                onClick={() => toggleExpand(i)}
                 className="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group"
               >
                 <div className="flex items-start gap-3">
@@ -262,15 +408,17 @@ export function QuickPrompts({ onSelect }: QuickPromptsProps) {
                     <p className="text-sm text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                       {p.text}
                     </p>
-                    <p className="text-xs text-zinc-400 mt-0.5 capitalize">{p.agentName}</p>
+                    {expandedIndex !== i && (
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{p.description}</p>
+                    )}
                   </div>
                 </div>
               </button>
-              {p.fields && p.buildPrompt && expandedIndex === i && (
+              {expandedIndex === i && (
                 <QuickPromptForm
                   fields={p.fields}
                   onSubmit={(values) => {
-                    onSelect(p.buildPrompt!(values), p.agentName);
+                    onSelect(p.buildPrompt(values), p.agentName);
                     setExpandedIndex(null);
                   }}
                   onCancel={() => setExpandedIndex(null)}
