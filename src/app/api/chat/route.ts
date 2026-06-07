@@ -132,8 +132,13 @@ export async function POST(req: Request) {
     if (shouldSearch) {
       try {
         const results = await withTimeout(searchWeb(userMessage), 8000, '');
-        if (results && !results.includes('не настроен') && !results.includes('Ошибка') && results.length > 20) {
+        const isUsable = results && !results.includes('не настроен') && !results.includes('Ошибка') && results.length > 20;
+        if (isUsable) {
           searchContext = `\n\n## Актуальные данные из интернета (используй в ответе, ссылайся на источники):\n\n${results}`;
+        } else if (results) {
+          // Tavily returned a graceful error string (bad key, quota, timeout) — log it,
+          // otherwise search failures are invisible and the model silently writes without grounding
+          console.error('[Search] Tavily returned no usable results:', results.slice(0, 200));
         }
       } catch (error) {
         console.error('[Search] Failed:', error);
